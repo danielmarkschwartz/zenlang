@@ -18,9 +18,9 @@ bool stream_init_file(struct stream *s, char *path) {
 int stream_getc(struct stream *s) {
     assert(s);
     int c = fgetc(s->f);
+    s->pchar = c;
     if(c == EOF) return c;
 
-    s->pchar = c;
 
     if(c == '\n') {
         s->line ++;
