@@ -94,6 +94,21 @@ static bool is_str_initial(int c) {
     return c == '"' || c == '\'';
 }
 
+void skip_comment_line(struct stream *s) {
+    int c;
+    while(c = stream_getc(s), c != '\n' && c != EOF);
+}
+
+bool skip_comment_multiline(struct stream *s) {
+    for(;;) {
+        int c = stream_getc(s);
+        if(c == EOF) return false;
+        if(c != '*') continue;
+        c = stream_getc(s);
+        if(c == '/') return true;
+    }
+}
+
 
 struct token token_next(struct stream *s) {
     assert(s);
@@ -149,8 +164,16 @@ start:
                 break;
             case '/':
                 if(cn == '=') t.value = strdup("/=");
-                //TODO: handle comments, call comment parse function then goto start
-                else goto single;
+                else if(cn == '/') {
+                    skip_comment_line(s);
+                    goto start;
+                } else if(cn == '*') {
+                    if(!skip_comment_multiline(s)) {
+                        t.value = strdup("EOF while parsing comment /*");
+                        return t;
+                    }
+                    goto start;
+                } else goto single;
                 break;
             case '<':
                 if(cn == '=') t.value = strdup("<=");

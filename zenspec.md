@@ -14,7 +14,7 @@ Tokens
 
 Input streams are initially converted to tokens as noted below. Before breaking
 in to tokens, the input stream is scrubbed of any characters between and
-including /\* \*/ and // \<newline>, except those inside of strings literals.
+including /\* \*/ and // \<newline>.
 
 
 ### Space

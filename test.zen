@@ -13,11 +13,13 @@ ident ident123sht_ _my_ident H_ELOEnstoeustn2_zZaA34p09g
  break
  volatile if
 
+//Comment
 func helloworld(x int) {
     return 123;
 }
 
 
-"
-э
+/* Another
+comment * /
+*/
 
