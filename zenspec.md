@@ -19,7 +19,7 @@ including /\* \*/ and // \<newline>, except those inside of strings literals.
 
 ### Space
 
-Any sequence of " ", \t, \v, \n, or \r.
+Any sequence of " ", \t, \n, or \r.
 
 ### Punctuation Characters
 
@@ -88,7 +88,8 @@ or nothing for decimal.
 
 Hex digits are [0-9a-fA-F]. Decimal digits are [0-9]. Octal digits are [0-7].
 Binary digits are [01]. Only one decimal point is allowed in the stream of
-digits.
+digits. Underscore characters are allowed in digits as place markers, and are
+ignored during parsing.
 
 The exponent must begin with [eE] character (decimal) or [pP] character (hex) if
 present. Optionally either + or - may occur to determine the sign of the
@@ -117,14 +118,9 @@ length.
 
 Sequence    Value   Name
 ---------   -----   ------
-\a	        07	    Alert 
-\b	        08	    Backspace
-\e	        1B	    Escape character
-\f	        0C	    Formfeed Page Break
 \n	        0A	    Newline (Line Feed)
 \r	        0D	    Carriage Return
 \t	        09	    Horizontal Tab
-\v	        0B	    Vertical Tab
 \\	        5C	    Backslash
 \'	        27	    Apostrophe or single quotation mark
 \"	        22	    Double quotation mark
