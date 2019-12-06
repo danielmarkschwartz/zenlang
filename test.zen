@@ -9,15 +9,6 @@ ident ident123sht_ _my_ident H_ELOEnstoeustn2_zZaA34p09g
 'Hello "World"'
 "An \"escape\""
 'No \ escape'
-"""Multi
-"Line"
-escape ""
-\"""
-"""
-'''Multi
-'line' ''
-no escape
-\'''
 
  break
  volatile if

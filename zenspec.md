@@ -56,19 +56,10 @@ on accepted number formats
 
 ### String literal
 
-A sequence starting with " or ' and ending with " or '.
+A sequence starting with " or ' and ending with " or '. Double quote strings
+allow escaping, while single quote strings are verbatim (see String Literal
+Parsing). Strings cannot contain a literal newline (\n or \r).
 
-Strings that start with a single ' (and not ''') continue until the next single
-'. Single quote strings are not escaped. Strings that start with a single " (and
-not """) continue until the next single quote that is not preceeded by a '\'
-that itself is not preceeded by a '\'. Double quote strings are quoted, as
-described in the literal parsing section below. Both strings cannot contain a
-literal newline (\n or \r).
-
-Triple quoted strings are allowed to contain newlines, and continue until the
-next corresponding triple sequence. Double quoted triple quote strings (""")
-allow escaping, and continue until the next """ that is not preceeded by `\`
-that itself is not preceded by a `\`.
 
 Literal Parsing
 ---------------

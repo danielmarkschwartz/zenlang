@@ -235,24 +235,10 @@ single:     default: {
 
     } else if(is_str_initial(c)) {
         char q = c;
-        bool multiline = false;
         bool esc = q == '"';
         bool after_bt = false;
 
         t.type = esc ? TOKEN_STR_ESC : TOKEN_STR;
-
-        //Check for multi line literal
-        c = stream_getc(s);
-        if( c == q ) {
-            c = stream_getc(s);
-            if( c == q ) {
-                multiline = true;
-            } else {
-                t.value = NULL;
-                return t;
-            }
-        } else stream_ungetc(s);
-
 
         //Consume string
         for(;;) {
@@ -264,20 +250,7 @@ single:     default: {
             }
 
 
-            if((!esc || !after_bt) && c == q) {
-                if(!multiline) break;
-
-                c = stream_getc(s);
-                if(c == q) {
-                    c = stream_getc(s);
-                    if(c == q)  break;
-
-                    assert(N<BUFSIZ-1);
-                    buf[N++] = (char)q;
-                }
-                stream_ungetc(s);
-                c = q;
-            }
+            if((!esc || !after_bt) && c == q) break;
 
             assert(N < BUFSIZ - 1);
             buf[N++] = (char)c;
