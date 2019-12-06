@@ -102,9 +102,8 @@ struct token token_next(struct stream *s) {
     char buf[BUFSIZ];
     int N = 0;
 
-start: c = stream_getc(s);
-    if(is_space(c)) while(c = stream_getc(s), is_space(c));
-
+start:
+    while(c = stream_getc(s), is_space(c));
     stream_ungetc(s);
 
     struct token t = (struct token){
@@ -115,9 +114,10 @@ start: c = stream_getc(s);
 
     c = stream_getc(s);
 
-    if(is_punct(c)) {
+    if(c == EOF) {
+        t.type = TOKEN_EOF;
+    } else if(is_punct(c)) {
         cn = stream_getc(s);
-        t.type = TOKEN_PUNCT;
         switch(c) {
             case '!':
                 if(cn == '=') t.value = strdup("!=");
@@ -195,6 +195,7 @@ single:     default: {
                 t.value = strdup(buf);
             }
         }
+        t.type = TOKEN_PUNCT;
 
     }else if(is_ident_initial(c)) {
         buf[N++] = (char)c;
