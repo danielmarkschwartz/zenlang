@@ -181,6 +181,7 @@ typdefe time_lst int;
 u := (time_utc)123;
 l := (time_lst)0;
 l = (time_lst)u;  //l = u would throw an error
+```
 
 Simplified Syntax
 -----------------
