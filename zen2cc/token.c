@@ -239,17 +239,15 @@ single:     default: {
         bool esc = q == '"';
         bool after_bt = false;
 
-        t.type = esc ? TOKEN_STR_ESC : TOKEN_STR;
-
         //Consume string
         for(;;) {
             c = stream_getc(s);
 
             if(c == EOF) {
+                t.type = TOKEN_ERR;
                 t.value = strdup("EOF while parsing string");
                 return t;
             }
-
 
             if((!esc || !after_bt) && c == q) break;
 
@@ -261,6 +259,7 @@ single:     default: {
         assert(N < BUFSIZ - 1);
         buf[N++] = 0;
 
+        t.type = esc ? TOKEN_STR_ESC : TOKEN_STR;
         t.value = strdup(buf);
 
     }  else {
