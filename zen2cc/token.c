@@ -7,36 +7,95 @@
 char *token_type_str[TOKEN_MAX] = {
     "TOKEN_ERR",
     "TOKEN_EOF",
+
     "TOKEN_IDENT",
-    "TOKEN_PUNCT",
+
     "TOKEN_NUM",
     "TOKEN_STR",
     "TOKEN_STR_ESC",
-    "TOKEN_KEY_BREAK",
-    "TOKEN_KEY_CASE",
-    "TOKEN_KEY_CONTINUE",
-    "TOKEN_KEY_CONST",
-    "TOKEN_KEY_DEFAULT",
-    "TOKEN_KEY_DO",
-    "TOKEN_KEY_ELSE",
-    "TOKEN_KEY_ENUM",
-    "TOKEN_KEY_FALLTHROUGH",
-    "TOKEN_KEY_FOR",
-    "TOKEN_KEY_FUNC",
-    "TOKEN_KEY_IF",
-    "TOKEN_KEY_RETURN",
-    "TOKEN_KEY_STRUCT",
-    "TOKEN_KEY_SWITCH",
-    "TOKEN_KEY_TYPEDEF",
-    "TOKEN_KEY_UNION",
-    "TOKEN_KEY_VOLATILE"
+
+    "TOKEN_BREAK",
+    "TOKEN_CASE",
+    "TOKEN_CONTINUE",
+    "TOKEN_CONST",
+    "TOKEN_DEFAULT",
+    "TOKEN_DO",
+    "TOKEN_ELSE",
+    "TOKEN_ENUM",
+    "TOKEN_FALLTHROUGH",
+    "TOKEN_FOR",
+    "TOKEN_FUNC",
+    "TOKEN_IF",
+    "TOKEN_RETURN",
+    "TOKEN_STRUCT",
+    "TOKEN_SWITCH",
+    "TOKEN_TYPEDEF",
+    "TOKEN_UNION",
+    "TOKEN_VOLATILE",
+
+    "TOKEN_NE",
+    "TOKEN_NOT",
+    "TOKEN_HASH",
+    "TOKEN_MODASSIGN",
+    "TOKEN_MOD",
+    "TOKEN_AND",
+    "TOKEN_BANDASSIGN",
+    "TOKEN_BAND",
+    "TOKEN_LPAREN",
+    "TOKEN_RPAREN",
+    "TOKEN_MULASSIGN",
+    "TOKEN_MUL",
+    "TOKEN_INC",
+    "TOKEN_ADDASSIGN",
+    "TOKEN_ADD",
+    "TOKEN_COMMA",
+    "TOKEN_DEC",
+    "TOKEN_SUBASSIGN",
+    "TOKEN_SUB",
+    "TOKEN_DOT",
+    "TOKEN_COMMENT_LINE",
+    "TOKEN_COMMENT_MLINE",
+    "TOKEN_DIVASSIGN",
+    "TOKEN_DIV",
+    "TOKEN_COLON",
+    "TOKEN_SEMICOLON",
+    "TOKEN_BSL",
+    "TOKEN_LE",
+    "TOKEN_BSLASSIGN",
+    "TOKEN_LT",
+    "TOKEN_EQ",
+    "TOKEN_ASSIGN",
+    "TOKEN_BSR",
+    "TOKEN_GE",
+    "TOKEN_BSRASSIGN",
+    "TOKEN_GT",
+    "TOKEN_QM",
+    "TOKEN_AT",
+    "TOKEN_LBRA",
+    "TOKEN_BSLASH",
+    "TOKEN_RBRA",
+    "TOKEN_XORASSIGN",
+    "TOKEN_XOR",
+    "TOKEN_LCURL",
+    "TOKEN_BORASSIGN",
+    "TOKEN_OR",
+    "TOKEN_BOR",
+    "TOKEN_RCURL",
+    "TOKEN_BNOT",
+};
+
+#define PUNCT_NUM 49
+
+//Must be in same order as enum definition above
+static char *punct[PUNCT_NUM] = {
+    "!=", "!", "#", "%=", "%", "&&", "&=", "&", "(", ")", "*", "*=", "++", "+=", "+", ",", "--", "-=", "-", ".", "//", "/*", "/=", "/", ":", ";", "<<", "<=", "<<=", "<", "==", "=", ">>", ">=", ">>=", ">", "?", "@", "[", "\\", "]", "^=", "^", "{", "|=", "||", "|", "}", "~"
 };
 
 
 #define KEYWORDS_NUM 18
 
 //Must be in same order as enum definition above
-char *keywords[KEYWORDS_NUM] = {
+static char *keywords[KEYWORDS_NUM] = {
     "break", "case", "continue", "const", "default", "do", "else", "enum",
     "fallthrough", "for", "func", "if", "return", "struct", "switch",
     "typedef", "union", "volatile"
@@ -48,10 +107,10 @@ static bool is_space(int c) {
 
 static bool is_punct(int c) {
     switch(c) {
-        case '!': case '#': case '$': case '%': case '&':  case '(':
-        case ')': case '*': case '+': case ',': case '-': case '.': case '/': case ':':
-        case ';': case '<': case '=': case '>': case '?': case '@': case '[': case '\\':
-        case ']': case '^': case '`': case '{': case '|': case '}': case '~':
+        case '!': case '#': case '%': case '&': case '(': case ')': case '*':
+        case '+': case ',': case '-': case '.': case '/': case ':': case ';':
+        case '<': case '=': case '>': case '?': case '@': case '[': case '\\':
+        case ']': case '^': case '{': case '|': case '}': case '~':
             return true;
     }
     return false;
@@ -135,35 +194,49 @@ start:
         cn = stream_getc(s);
         switch(c) {
             case '!':
-                if(cn == '=') t.value = strdup("!=");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_NE;
+                else {t.type = TOKEN_NOT; stream_ungetc(s);}
+                break;
+            case '#':
+                t.type = TOKEN_HASH;
                 break;
             case '%':
-                if(cn == '=') t.value = strdup("%=");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_MODASSIGN;
+                else {t.type = TOKEN_MOD; stream_ungetc(s);}
                 break;
             case '&':
-                if(cn == '&') t.value = strdup("&&");
-                else if(cn == '=') t.value = strdup("&=");
-                else goto single;
+                if(cn == '&') t.type = TOKEN_AND;
+                else if(cn == '=') t.type = TOKEN_BANDASSIGN;
+                else {t.type = TOKEN_BAND; stream_ungetc(s);}
+                break;
+            case '(':
+                t.type = TOKEN_LPAREN;
+                break;
+            case ')':
+                t.type = TOKEN_RPAREN;
                 break;
             case '*':
-                if(cn == '=') t.value = strdup("*=");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_MULASSIGN;
+                else {t.type = TOKEN_MUL; stream_ungetc(s);}
                 break;
             case '+':
-                if(cn == '+') t.value = strdup("++");
-                else if(cn == '=') t.value = strdup("+=");
-                else goto single;
+                if(cn == '+') t.type = TOKEN_INC;
+                else if(cn == '=') t.type = TOKEN_ADDASSIGN;
+                else {t.type = TOKEN_ADD; stream_ungetc(s);}
+                break;
+            case ',':
+                t.type = TOKEN_COMMA;
                 break;
             case '-':
-                if(cn == '-') t.value = strdup("--");
-                else if(cn == '=') t.value = strdup("-=");
-                else if(cn == '>') t.value = strdup("->");
-                else goto single;
+                if(cn == '-') t.type = TOKEN_DEC;
+                else if(cn == '=') t.type = TOKEN_SUBASSIGN;
+                else {t.type = TOKEN_SUB; stream_ungetc(s);}
+                break;
+            case '.':
+                t.type = TOKEN_DOT;
                 break;
             case '/':
-                if(cn == '=') t.value = strdup("/=");
+                if(cn == '=') t.type = TOKEN_DIVASSIGN;
                 else if(cn == '/') {
                     skip_comment_line(s);
                     goto start;
@@ -173,52 +246,75 @@ start:
                         return t;
                     }
                     goto start;
-                } else goto single;
+                } else {t.type = TOKEN_DIV; stream_ungetc(s);}
+                break;
+            case ':':
+                t.type = TOKEN_COLON;
+                break;
+            case ';':
+                t.type = TOKEN_SEMICOLON;
                 break;
             case '<':
-                if(cn == '=') t.value = strdup("<=");
+                if(cn == '=') t.type = TOKEN_LE;
                 else if(cn == '<') {
                     cn = stream_getc(s);
-                    if(cn == '=') t.value = strdup("<<=");
+                    if(cn == '=') t.type = TOKEN_BSLASSIGN;
                     else {
-                        t.value = strdup("<<");
+                        t.type = TOKEN_BSL;
                         stream_ungetc(s);
                     }
-                } else goto single;
+                } else {t.type = TOKEN_LT; stream_ungetc(s);}
                 break;
             case '=':
-                if(cn == '=') t.value = strdup("==");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_EQ;
+                else {t.type = TOKEN_ASSIGN; stream_ungetc(s);}
                 break;
             case '>':
-                if(cn == '=') t.value = strdup(">=");
+                if(cn == '=') t.type = TOKEN_GE;
                 else if(cn == '>') {
                     cn = stream_getc(s);
-                    if(cn == '=') t.value = strdup(">>=");
+                    if(cn == '=') t.type = TOKEN_BSRASSIGN;
                     else {
-                        t.value = strdup(">>");
+                        t.type = TOKEN_BSR;
                         stream_ungetc(s);
                     }
-                } else goto single;
+                } else {t.type = TOKEN_GT; stream_ungetc(s);}
+                break;
+            case '?':
+                t.type = TOKEN_QM;
+                break;
+            case '@':
+                t.type = TOKEN_AT;
+                break;
+            case '[':
+                t.type = TOKEN_LBRA;
+                break;
+            case '\\':
+                t.type = TOKEN_BSLASH;
+                break;
+            case ']':
+                t.type = TOKEN_RBRA;
                 break;
             case '^':
-                if(cn == '=') t.value = strdup("^=");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_XORASSIGN;
+                else {t.type = TOKEN_XOR; stream_ungetc(s);}
+                break;
+            case '{':
+                t.type = TOKEN_LCURL;
                 break;
             case '|':
-                if(cn == '=') t.value = strdup("|=");
-                else if(cn == '|') t.value = strdup("||");
-                else goto single;
+                if(cn == '=') t.type = TOKEN_BORASSIGN;
+                else if(cn == '|') t.type = TOKEN_OR;
+                else {t.type = TOKEN_BOR; stream_ungetc(s);}
                 break;
-single:     default: {
-                stream_ungetc(s);
-
-                char buf[2] = " ";
-                buf[0] = c;
-                t.value = strdup(buf);
-            }
+            case '}':
+                t.type = TOKEN_RCURL;
+                break;
+            case '~':
+                t.type = TOKEN_BNOT;
+                break;
+            default: assert(false);
         }
-        t.type = TOKEN_PUNCT;
 
     }else if(is_ident_initial(c)) {
         buf[N++] = (char)c;
@@ -235,7 +331,7 @@ single:     default: {
 
         for(int i = 0; i < KEYWORDS_NUM; i++)
             if(strcmp(keywords[i], buf) == 0) {
-                t.type = TOKEN_KEY_BREAK + i;
+                t.type = TOKEN_BREAK + i;
                 break;
             }
 
@@ -303,7 +399,11 @@ void token_print(struct token t) {
     char *s = token_type_str[t.type];
 
     if(t.value)
-        printf("%s [%i col %i] - \"%s\"\n", s, t.line, t.col, t.value);
+        printf("%s [%i col %i] - \"%s\"", s, t.line, t.col, t.value);
     else
-        printf("%s [%i col %i]\n", s, t.line, t.col);
+        printf("%s [%i col %i]", s, t.line, t.col);
+
+    if(t.type >= TOKEN_NE)
+        printf(" %s\n", punct[t.type - TOKEN_NE]);
+    else printf("\n");
 }
