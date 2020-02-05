@@ -1,14 +1,29 @@
 #include <stdio.h>
+#include <string.h>
 #include "common.h"
 #include "token.h"
+#include "parse.h"
 
 int main(int argc, char **argv) {
-    if(argc != 2) {
-        fprintf(stderr, "Expected 1 argument <testfile>");
+    enum {TOKENS, PARSE, CC} output = CC;
+
+    if(argc < 2 || argc > 3) {
+        fprintf(stderr, "Expected 1 argument <testfile>\n");
         return 1;
     }
 
     char *filename = argv[1];
+
+    if(argc == 3){
+        filename = argv[2];
+        if(strcmp(argv[1], "-t") == 0) output = TOKENS;
+        else if(strcmp(argv[1], "-p") == 0) output = PARSE;
+        else {
+            fprintf(stderr, "Unexpected argument \"%s\"\n", argv[1]);
+            return 1;
+        }
+    }
+
     struct stream s;
     if(!stream_init_file(&s, filename)) {
         fprintf(stderr, "ERR: Could not open file \"%s\"\n", filename);
@@ -16,13 +31,30 @@ int main(int argc, char **argv) {
     }
 
     struct token t;
-    for(;;) {
+    struct parse_state p;
+
+    parse_init(&p);
+
+    do {
         t = token_next(&s);
-        token_print(t);
-        token_free(t);
-        if(t.type == TOKEN_ERR || t.type == TOKEN_EOF)
+        if(output == TOKENS) {
+            token_print(t);
+            continue;
+        }
+
+        char *err = parse_token(&p, t);
+        if(err) {
+            fprintf(stderr, "PERR: %s\n", err);
             break;
-    }
+        }
+
+
+        if(output == PARSE) {
+            parse_state_print(&p);
+        }
+    } while(t.type != TOKEN_ERR && t.type != TOKEN_EOF);
+
+    parse_free(&p);
 
     return 0;
 }

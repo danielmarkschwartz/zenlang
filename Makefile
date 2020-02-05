@@ -1,7 +1,10 @@
 test: zen2cc/zen2cc
+	./zen2cc/zen2cc -p tests/hello.zen
+
+test_token:
 	@for f in tests/*.zen; do \
 		printf "Testing $${f##*/} ... "; \
-		./zen2cc/zen2cc "$$f" > "$${f%.*}.temp"; \
+		./zen2cc/zen2cc -t "$$f" > "$${f%.*}.temp"; \
 		DIFF="$$(diff -q "$${f%.*}.temp" "$${f%.*}.token")"; \
 		if [ -z "$$DIFF" ]; \
 		then printf "OK\n"; \
