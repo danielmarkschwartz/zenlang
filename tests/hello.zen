@@ -1,0 +1,6 @@
+include "/io"
+
+func main() int {
+    io.print("Hello World!");
+    return 0;
+}

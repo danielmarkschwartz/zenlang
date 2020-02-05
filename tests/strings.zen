@@ -1,0 +1,8 @@
+func main() int {
+    s1 := "Hello 'World'";
+    s2 := 'Hello "World"';
+    s3 := "An \"escape\"";
+    s4 := 'No \ escape';
+
+    return 0;
+}

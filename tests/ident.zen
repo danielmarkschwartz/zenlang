@@ -1,0 +1,10 @@
+
+func main() int{
+    ident := 0;
+    ident123sht_ := 1;
+    _my_ident := 2;
+    H_ELOEnstoeustn2_zZaA34p09g := 3;
+
+
+    return ident + ident123sht_ + _my_ident + H_ELOEnstoeustn2_zZaA34p09g;
+}
