@@ -176,7 +176,7 @@ allowed.For instance:
 
 ```
 typedef time_utc int;
-typdefe time_lst int;
+typedef time_lst int;
 
 u := (time_utc)123;
 l := (time_lst)0;
