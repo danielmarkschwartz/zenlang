@@ -59,6 +59,7 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_DIVASSIGN",
     "TOKEN_DIV",
     "TOKEN_COLON",
+    "TOKEN_DEFASSIGN",
     "TOKEN_SEMICOLON",
     "TOKEN_BSL",
     "TOKEN_LE",
@@ -85,11 +86,11 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_BNOT",
 };
 
-#define PUNCT_NUM 49
+#define PUNCT_NUM 50
 
 //Must be in same order as enum definition above
 static char *punct[PUNCT_NUM] = {
-    "!=", "!", "#", "%=", "%", "&&", "&=", "&", "(", ")", "*", "*=", "++", "+=", "+", ",", "--", "-=", "-", ".", "//", "/*", "/=", "/", ":", ";", "<<", "<=", "<<=", "<", "==", "=", ">>", ">=", ">>=", ">", "?", "@", "[", "\\", "]", "^=", "^", "{", "|=", "||", "|", "}", "~"
+    "!=", "!", "#", "%=", "%", "&&", "&=", "&", "(", ")", "*", "*=", "++", "+=", "+", ",", "--", "-=", "-", ".", "//", "/*", "/=", "/", ":", ":=", ";", "<<", "<=", "<<=", "<", "==", "=", ">>", ">=", ">>=", ">", "?", "@", "[", "\\", "]", "^=", "^", "{", "|=", "||", "|", "}", "~"
 };
 
 
@@ -250,7 +251,8 @@ start:
                 } else {t.type = TOKEN_DIV; stream_ungetc(s);}
                 break;
             case ':':
-                t.type = TOKEN_COLON; stream_ungetc(s);
+                if(cn == '=') t.type = TOKEN_DEFASSIGN;
+                else {t.type = TOKEN_COLON; stream_ungetc(s);}
                 break;
             case ';':
                 t.type = TOKEN_SEMICOLON; stream_ungetc(s);

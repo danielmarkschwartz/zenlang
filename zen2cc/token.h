@@ -60,6 +60,7 @@ enum token_type {
     TOKEN_DIVASSIGN,
     TOKEN_DIV,
     TOKEN_COLON,
+    TOKEN_DEFASSIGN,
     TOKEN_SEMICOLON,
     TOKEN_BSL,
     TOKEN_LE,
