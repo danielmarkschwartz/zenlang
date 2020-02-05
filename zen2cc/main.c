@@ -3,11 +3,17 @@
 #include "token.h"
 
 int main(int argc, char **argv) {
-    printf("Zen Language to C Compiler\n");
+    if(argc != 2) {
+        fprintf(stderr, "Expected 1 argument <testfile>");
+        return 1;
+    }
 
+    char *filename = argv[1];
     struct stream s;
-    if(!stream_init_file(&s, "test.zen"))
-        fprintf(stderr, "ERR: Could not open file\n");
+    if(!stream_init_file(&s, filename)) {
+        fprintf(stderr, "ERR: Could not open file \"%s\"\n", filename);
+        return 2;
+    }
 
     struct token t;
     for(;;) {
