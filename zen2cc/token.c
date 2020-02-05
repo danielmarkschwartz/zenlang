@@ -33,6 +33,7 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_UNION",
     "TOKEN_VOLATILE",
 
+    //Punctuation
     "TOKEN_NE",
     "TOKEN_NOT",
     "TOKEN_HASH",
@@ -198,7 +199,7 @@ start:
                 else {t.type = TOKEN_NOT; stream_ungetc(s);}
                 break;
             case '#':
-                t.type = TOKEN_HASH;
+                t.type = TOKEN_HASH; stream_ungetc(s);
                 break;
             case '%':
                 if(cn == '=') t.type = TOKEN_MODASSIGN;
@@ -210,10 +211,10 @@ start:
                 else {t.type = TOKEN_BAND; stream_ungetc(s);}
                 break;
             case '(':
-                t.type = TOKEN_LPAREN;
+                t.type = TOKEN_LPAREN; stream_ungetc(s);
                 break;
             case ')':
-                t.type = TOKEN_RPAREN;
+                t.type = TOKEN_RPAREN; stream_ungetc(s);
                 break;
             case '*':
                 if(cn == '=') t.type = TOKEN_MULASSIGN;
@@ -225,7 +226,7 @@ start:
                 else {t.type = TOKEN_ADD; stream_ungetc(s);}
                 break;
             case ',':
-                t.type = TOKEN_COMMA;
+                t.type = TOKEN_COMMA; stream_ungetc(s);
                 break;
             case '-':
                 if(cn == '-') t.type = TOKEN_DEC;
@@ -233,7 +234,7 @@ start:
                 else {t.type = TOKEN_SUB; stream_ungetc(s);}
                 break;
             case '.':
-                t.type = TOKEN_DOT;
+                t.type = TOKEN_DOT; stream_ungetc(s);
                 break;
             case '/':
                 if(cn == '=') t.type = TOKEN_DIVASSIGN;
@@ -249,10 +250,10 @@ start:
                 } else {t.type = TOKEN_DIV; stream_ungetc(s);}
                 break;
             case ':':
-                t.type = TOKEN_COLON;
+                t.type = TOKEN_COLON; stream_ungetc(s);
                 break;
             case ';':
-                t.type = TOKEN_SEMICOLON;
+                t.type = TOKEN_SEMICOLON; stream_ungetc(s);
                 break;
             case '<':
                 if(cn == '=') t.type = TOKEN_LE;
@@ -281,26 +282,26 @@ start:
                 } else {t.type = TOKEN_GT; stream_ungetc(s);}
                 break;
             case '?':
-                t.type = TOKEN_QM;
+                t.type = TOKEN_QM; stream_ungetc(s);
                 break;
             case '@':
-                t.type = TOKEN_AT;
+                t.type = TOKEN_AT; stream_ungetc(s);
                 break;
             case '[':
-                t.type = TOKEN_LBRA;
+                t.type = TOKEN_LBRA; stream_ungetc(s);
                 break;
             case '\\':
-                t.type = TOKEN_BSLASH;
+                t.type = TOKEN_BSLASH; stream_ungetc(s);
                 break;
             case ']':
-                t.type = TOKEN_RBRA;
+                t.type = TOKEN_RBRA; stream_ungetc(s);
                 break;
             case '^':
                 if(cn == '=') t.type = TOKEN_XORASSIGN;
                 else {t.type = TOKEN_XOR; stream_ungetc(s);}
                 break;
             case '{':
-                t.type = TOKEN_LCURL;
+                t.type = TOKEN_LCURL; stream_ungetc(s);
                 break;
             case '|':
                 if(cn == '=') t.type = TOKEN_BORASSIGN;
@@ -308,10 +309,10 @@ start:
                 else {t.type = TOKEN_BOR; stream_ungetc(s);}
                 break;
             case '}':
-                t.type = TOKEN_RCURL;
+                t.type = TOKEN_RCURL; stream_ungetc(s);
                 break;
             case '~':
-                t.type = TOKEN_BNOT;
+                t.type = TOKEN_BNOT; stream_ungetc(s);
                 break;
             default: assert(false);
         }
