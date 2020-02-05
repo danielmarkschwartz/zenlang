@@ -1,0 +1,30 @@
+func main() int {
+    a :=  (uint)1;
+    b :=  (uint)2;
+
+    a--;
+    b++;
+    a = a - b;
+    a = !a;
+    b = ~b;
+    a = a != b;
+    a = a << 1;
+    a = a >> 1;
+    a = a <= b;
+    b = b >= a;
+    b = b == a;
+    b = a && b;
+    b = a || b;
+    a += 1;
+    b -= 2;
+    a *= b;
+    b /= a;
+    a %= b;
+    b &= a;
+    a ^= b;
+    b |= a;
+    a <<= b;
+    b >>= a;
+
+    return a; //Should be 0
+}

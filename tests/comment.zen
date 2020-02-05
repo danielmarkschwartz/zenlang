@@ -1,0 +1,8 @@
+// A comment
+/* Another
+comment * /
+//
+*/
+
+/* func // */
+func main() int { 0 }
