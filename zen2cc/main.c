@@ -42,15 +42,16 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        char *err = parse_token(&p, t);
+        struct parse_node n;
+        char *err = parse_token(&p, &n, t);
         if(err) {
-            fprintf(stderr, "PERR: %s\n", err);
+            fprintf(stdout, "PERR: %s\n", err);
             break;
         }
 
 
         if(output == PARSE) {
-            parse_state_print(&p);
+            parse_node_print(&n);
         }
     } while(t.type != TOKEN_ERR && t.type != TOKEN_EOF);
 
