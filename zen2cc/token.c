@@ -26,6 +26,8 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_FOR",
     "TOKEN_FUNC",
     "TOKEN_IF",
+    "TOKEN_INCLUDE",
+    "TOKEN_LET",
     "TOKEN_RETURN",
     "TOKEN_STRUCT",
     "TOKEN_SWITCH",
@@ -94,13 +96,13 @@ static char *punct[PUNCT_NUM] = {
 };
 
 
-#define KEYWORDS_NUM 18
+#define KEYWORDS_NUM 20
 
 //Must be in same order as enum definition above
 static char *keywords[KEYWORDS_NUM] = {
     "break", "case", "continue", "const", "default", "do", "else", "enum",
-    "fallthrough", "for", "func", "if", "return", "struct", "switch",
-    "typedef", "union", "volatile"
+    "fallthrough", "for", "func", "if", "include", "let", "return", "struct",
+    "switch", "typedef", "union", "volatile"
 };
 
 static bool is_space(int c) {

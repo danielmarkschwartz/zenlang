@@ -27,6 +27,8 @@ enum token_type {
     TOKEN_FOR,
     TOKEN_FUNC,
     TOKEN_IF,
+    TOKEN_INCLUDE,
+    TOKEN_LET,
     TOKEN_RETURN,
     TOKEN_STRUCT,
     TOKEN_SWITCH,
@@ -98,3 +100,5 @@ struct token {
 struct token token_next(struct stream *s);
 void token_free(struct token t);
 void token_print(struct token t);
+
+extern char *token_type_str[TOKEN_MAX];
