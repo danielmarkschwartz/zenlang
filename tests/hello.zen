@@ -1,4 +1,4 @@
-include "/io";
+include "/io"
 
 func main() int {
     io.print("Hello World!");

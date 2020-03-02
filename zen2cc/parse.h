@@ -16,7 +16,7 @@ enum parse_status {
     PARSE_LET,
     PARSE_INCLUDE,
     PARSE_INCLUDE_IDENT,
-    PARSE_INCLUDE_SEMICOLON,
+    PARSE_INCLUDE_NEWLINE,
 };
 
 struct parse_state {

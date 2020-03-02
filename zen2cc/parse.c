@@ -63,31 +63,32 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
                     case TOKEN_CONST: status_append(PARSE_CONST);
                     case TOKEN_LET: status_append(PARSE_LET);
                     case TOKEN_INCLUDE: status_append(PARSE_INCLUDE);
+                    case TOKEN_NEWLINE: n->type = NODE_NONE; return NULL;
                     default: bad_token("typdef, func, struct, enum, const, let, or include");
                 } break;
 
-            //^include " package " ident? ;
+            //^include " package " ident? $
             //           ^
             case PARSE_INCLUDE:
                 if(t.type != TOKEN_STR_ESC) bad_token("include path");
                 status_append_token(t);
                 status_set(PARSE_INCLUDE_IDENT);
 
-            //^include " package " ident? ;
+            //^include " package " ident? $
             //                     ^
             case PARSE_INCLUDE_IDENT:
-                if(t.type != TOKEN_IDENT && t.type != TOKEN_SEMICOLON)
+                if(t.type != TOKEN_IDENT && t.type != TOKEN_NEWLINE)
                     bad_token("expected ; or include identifier");
                 else if(t.type == TOKEN_IDENT) {
                     status_append_token(t);
-                    status_set(PARSE_INCLUDE_SEMICOLON);
-                } else if(t.type == TOKEN_SEMICOLON)
+                    status_set(PARSE_INCLUDE_NEWLINE);
+                } else if(t.type == TOKEN_NEWLINE)
                     status_pop_consume(NODE_INCLUDE, 1);
 
-            //^include " package " ident? ;
+            //^include " package " ident? $
             //                            ^
-            case PARSE_INCLUDE_SEMICOLON:
-                if(t.type != TOKEN_SEMICOLON)
+            case PARSE_INCLUDE_NEWLINE:
+                if(t.type != TOKEN_NEWLINE)
                     bad_token("; at end of include statement");
                 status_pop_consume(NODE_INCLUDE_DEFINE, 2);
 
