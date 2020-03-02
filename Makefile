@@ -15,6 +15,12 @@ test_token:
 		fi; \
 	done
 
+test_token_update:
+	@for f in tests/*.zen; do \
+		printf "Updating $${f##*/} ... \n"; \
+		./zen2cc/zen2cc -t "$$f" > "$${f%.*}.token"; \
+	done
+
 zen2cc/zen2cc: zen2cc/*.c zen2cc/*.h
 	$(CC) -o zen2cc/zen2cc zen2cc/*.c
 

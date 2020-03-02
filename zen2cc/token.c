@@ -7,6 +7,7 @@
 char *token_type_str[TOKEN_MAX] = {
     "TOKEN_ERR",
     "TOKEN_EOF",
+    "TOKEN_NEWLINE",
 
     "TOKEN_IDENT",
 
@@ -106,7 +107,7 @@ static char *keywords[KEYWORDS_NUM] = {
 };
 
 static bool is_space(int c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    return c == ' ' || c == '\t' ||  c == '\r';
 }
 
 static bool is_punct(int c) {
@@ -194,6 +195,8 @@ start:
 
     if(c == EOF) {
         t.type = TOKEN_EOF;
+    } else if(c == '\n') {
+        t.type = TOKEN_NEWLINE;
     } else if(is_punct(c)) {
         cn = stream_getc(s);
         switch(c) {

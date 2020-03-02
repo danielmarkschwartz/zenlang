@@ -5,6 +5,7 @@
 enum token_type {
     TOKEN_ERR = 0,
     TOKEN_EOF,
+    TOKEN_NEWLINE,
 
     //Identifier (must have value)
     TOKEN_IDENT,
