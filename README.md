@@ -46,7 +46,7 @@ of Zen source files that share a top level namespace. So all functions, types,
 variables defined globally in any module file are available to all other.
 
 User modules or "standard library" features can be accessed by the `include
-"/img/png" as png;` statement, which takes a module path. In this example a
+"/img/png" png;` statement, which takes a module path. In this example a
 name space called `png` is created with functionality inherited from the PNG
 module of the standard library.
 
@@ -56,8 +56,13 @@ paths (starting with '/') are system or "standard" modules, and relative paths
 represent a module defined in the current project.
 
 By default, all top level definitions in a module are not visible outside the
-module (unexported). Including the `export` keyword before top level definitions
-allows exposes the feature for use by client applications, thus defining an API.
+module (unexported). Including the `export` keyword after top level definition
+keyword allows exposes the feature for use by client applications, thus defining
+an API:
+
+```
+func export f(x, y int) int { x+y };
+```
 
 ### Constants
 
@@ -148,7 +153,7 @@ struct something {
     callback func(x, y int) int;
 };
 
-func f(x, y int) int { x+y }
+func f(x, y int) int { x+y };
 
 e := (something){0};
 e.callback = f;
@@ -324,7 +329,7 @@ using the `->` operator:
 
 ```
 typdef time int;
-func time->string() char* { "time string"; }
+func time->string() char* { itoa(time); }
 
 func main() {
     t = (time)1234;
