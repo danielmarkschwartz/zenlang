@@ -1,6 +1,6 @@
 test: zen2cc/zen2cc
-	./zen2cc/zen2cc -p tests/hello.zen
-	#./zen2cc/zen2cc -t tests/hello.zen
+	./zen2cc/zen2cc -p tests/syntax.zen
+	#./zen2cc/zen2cc -t tests/syntax.zen
 
 test_token:
 	@for f in tests/*.zen; do \

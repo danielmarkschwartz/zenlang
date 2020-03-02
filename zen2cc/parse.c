@@ -77,18 +77,18 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
             //^include " package " ident? $
             //                     ^
             case PARSE_INCLUDE_IDENT:
-                if(t.type != TOKEN_IDENT && t.type != TOKEN_NEWLINE)
+                if(t.type != TOKEN_IDENT && t.type != TOKEN_NEWLINE && t.type != TOKEN_EOF)
                     bad_token("expected ; or include identifier");
                 else if(t.type == TOKEN_IDENT) {
                     status_append_token(t);
                     status_set(PARSE_INCLUDE_NEWLINE);
-                } else if(t.type == TOKEN_NEWLINE)
+                } else if(t.type == TOKEN_NEWLINE || t.type == TOKEN_EOF)
                     status_pop_consume(NODE_INCLUDE, 1);
 
             //^include " package " ident? $
             //                            ^
             case PARSE_INCLUDE_NEWLINE:
-                if(t.type != TOKEN_NEWLINE)
+                if(t.type != TOKEN_NEWLINE && t.type != TOKEN_EOF)
                     bad_token("; at end of include statement");
                 status_pop_consume(NODE_INCLUDE_DEFINE, 2);
 
