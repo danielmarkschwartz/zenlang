@@ -55,6 +55,7 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_COMMA",
     "TOKEN_DEC",
     "TOKEN_SUBASSIGN",
+    "TOKEN_RARR",
     "TOKEN_SUB",
     "TOKEN_DOT",
     "TOKEN_COMMENT_LINE",
@@ -87,14 +88,13 @@ char *token_type_str[TOKEN_MAX] = {
     "TOKEN_BOR",
     "TOKEN_RCURL",
     "TOKEN_BNOT",
-    "TOKEN_RARR",
 };
 
 #define PUNCT_NUM 51
 
 //Must be in same order as enum definition above
 static char *punct[PUNCT_NUM] = {
-    "!=", "!", "#", "%=", "%", "&&", "&=", "&", "(", ")", "*", "*=", "++", "+=", "+", ",", "--", "-=", "-", ".", "//", "/*", "/=", "/", ":", ":=", ";", "<<", "<=", "<<=", "<", "==", "=", ">>", ">=", ">>=", ">", "?", "@", "[", "\\", "]", "^=", "^", "{", "|=", "||", "|", "}", "~", "->",
+    "!=", "!", "#", "%=", "%", "&&", "&=", "&", "(", ")", "*", "*=", "++", "+=", "+", ",", "--", "-=", "->", "-", ".", "//", "/*", "/=", "/", ":", ":=", ";", "<<", "<=", "<<=", "<", "==", "=", ">>", ">=", ">>=", ">", "?", "@", "[", "\\", "]", "^=", "^", "{", "|=", "||", "|", "}", "~",
 };
 
 
@@ -238,6 +238,7 @@ start:
             case '-':
                 if(cn == '-') t.type = TOKEN_DEC;
                 else if(cn == '=') t.type = TOKEN_SUBASSIGN;
+                else if(cn == '>') t.type = TOKEN_RARR;
                 else {t.type = TOKEN_SUB; stream_ungetc(s);}
                 break;
             case '.':
