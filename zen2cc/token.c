@@ -333,6 +333,8 @@ start:
             buf[N++] = (char)c;
         }
 
+        stream_ungetc(s);
+
         assert(N < BUFSIZ - 1);
         buf[N++] = 0;
 
@@ -355,6 +357,8 @@ start:
             assert(N < BUFSIZ - 1);
             buf[N++] = (char)c;
         }
+
+        stream_ungetc(s);
 
         assert(N < BUFSIZ - 1);
         buf[N++] = 0;
