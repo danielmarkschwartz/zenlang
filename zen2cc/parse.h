@@ -17,15 +17,15 @@ enum parse_status {
     PARSE_LET,
     PARSE_INCLUDE,
     PARSE_INCLUDE_IDENT,
-    PARSE_INCLUDE_NEWLINE,
+    PARSE_INCLUDE_NEWLINE,              //10
     PARSE_TYPE_EXPR,
     PARSE_TYPE_EXPR_FOLLOW_IDENT,
     PARSE_TYPE_EXPR_FOLLOW_ANY,
     PARSE_TYPE_EXPR_FUNC,
-    PARSE_TYPE_EXPR_STRUCT,
+    PARSE_TYPE_EXPR_STRUCT,             //15
+    PARSE_TYPE_EXPR_ARRAY_FINAL,
     PARSE_TYPE_EXPR_ACCESS,
-    PARSE_TYPE_EXPR_ARRAY,
-    PARSE_TYPE_EXPR_POINTER,
+    PARSE_EXPR,
 };
 
 struct parse_state {
@@ -42,6 +42,12 @@ enum parse_node_type {
     NODE_TYPEDEF_BEGIN,     //Start typdef node, t[0] == ident, follows type_expr
     NODE_TYPEDEF_END,       //End typedef type_expr
     NODE_TYPE_IDENT,        //Type identifier
+    NODE_TYPE_ACCESS,       //Access previous ident, t[0] == ident
+    NODE_TYPE_POINTER,      //Type of pointer (previous value was a pointer)
+    NODE_TYPE_ARRAY_BEGIN,  //Start type array subscript
+    NODE_TYPE_ARRAY_END,    //END type array subscript
+
+    NODE_NUM,               //A numeric constant
 };
 
 #define PARSE_NODE_MAX_TOKEN 5

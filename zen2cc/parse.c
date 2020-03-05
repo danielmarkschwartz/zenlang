@@ -42,7 +42,6 @@ char err[ERR_LEN];
     size_t NN = (N);\
     assert(NN <= PARSE_NODE_MAX_TOKEN);\
     assert(NN <= p->stack_i);\
-    n->type = (P);\
     for(int i = 0; i < NN; i++)\
         n->t[i] = p->stack[p->stack_i + i - NN];\
     p->stack_i -= NN;\
@@ -154,17 +153,10 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
                     bad_token("newline after typedef");
                 status_pop_consume(NODE_TYPEDEF_END,0);
 
-            //ident
-            //ident -> type_expr
-            //func ( type_args ) type_expr
-            //struct { type_args }
-            //type_expr []
-            //type_expr [ expr ]
-            //type_expr *
-
-            // initial: ident, func, struct
-            // follow_ident_only:  -> ident
-            // follow: *, [],
+            //ident follow_ident
+            //func ( type_args ) follow_all
+            //struct { type_args } follow_all
+            //^
             case PARSE_TYPE_EXPR:
                 switch(t.type) {
                     case TOKEN_IDENT:
@@ -178,22 +170,73 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
                     default: bad_token("type expression");
                 }
 
+            //ident -> ident follow_ident
+            //ident [] follow_any
+            //ident [ expr ] follow_any
+            //ident * follow_any
+            //      ^
             case PARSE_TYPE_EXPR_FOLLOW_IDENT:
                 switch(t.type) {
                     case TOKEN_RARR:
                         status_set(PARSE_TYPE_EXPR_ACCESS);
                     case TOKEN_LBRA:
-                        status_set(PARSE_TYPE_EXPR_ARRAY);
+                        status_begin(PARSE_EXPR, PARSE_TYPE_EXPR_ARRAY_FINAL,
+                                     NODE_TYPE_ARRAY_BEGIN, 0);
                     case TOKEN_MUL:
-                        status_set(PARSE_TYPE_EXPR_POINTER);
+                        status_yield(PARSE_TYPE_EXPR_FOLLOW_ANY, NODE_TYPE_POINTER, 0);
                     default: break;
                 };
                 p->status_i--;
                 continue;
 
+            //type_expr []
+            //type_expr [ expr ]
+            //type_expr *
+            //          ^
+            case PARSE_TYPE_EXPR_FOLLOW_ANY:
+                switch(t.type) {
+                    case TOKEN_LBRA:
+                        status_begin(PARSE_EXPR, PARSE_TYPE_EXPR_ARRAY_FINAL,
+                                     NODE_TYPE_ARRAY_BEGIN, 0);
+                    case TOKEN_MUL:
+                        status_yield(PARSE_TYPE_EXPR_FOLLOW_ANY, NODE_TYPE_POINTER, 0);
+                    default: break;
+                };
+                p->status_i--;
+                continue;
+
+            //ident -> ident
+            //         ^
+            case PARSE_TYPE_EXPR_ACCESS:
+                if(t.type != TOKEN_IDENT)
+                    bad_token("type identifier after ->");
+                status_append_token(t);
+                status_yield(PARSE_TYPE_EXPR_FOLLOW_ANY, NODE_TYPE_ACCESS, 1);
+
+            // type_expr [ expr? ]
+            //                   ^
+            case PARSE_TYPE_EXPR_ARRAY_FINAL:
+                if(t.type != TOKEN_RBRA)
+                    bad_token("]");
+                status_pop_consume(NODE_TYPE_ARRAY_END, 0);
+
+            case PARSE_EXPR:
+                switch(t.type) {
+                    case TOKEN_NUM:
+                        status_append_token(t);
+                        status_pop_consume(NODE_NUM, 1);
+                    default: break;
+                }
+                p->status_i--;
+                continue;
+
             case PARSE_TYPE_EXPR_FUNC:
+                assert(0);
+                //TODO
 
             case PARSE_TYPE_EXPR_STRUCT:
+                assert(0);
+                //TODO
 
 
 
@@ -227,6 +270,25 @@ void parse_node_print(struct parse_node *node) {
         case NODE_TYPE_IDENT:
             print_space();
             printf("type_ident %s\n", node->t[0].value); break;
+        case NODE_TYPE_ACCESS:
+            print_space();
+            printf("type_access -> %s\n", node->t[0].value); break;
+        case NODE_TYPE_POINTER:
+            print_space();
+            printf("type_pointer \n"); break;
+        case NODE_TYPE_ARRAY_BEGIN:
+            print_space();
+            printf("type_array_begin \n");
+            level++;
+            break;
+        case NODE_TYPE_ARRAY_END:
+            level--;
+            print_space();
+            printf("type_array_end \n"); break;
+
+        case NODE_NUM:
+            print_space();
+            printf("number %s\n", node->t[0].value); break;
 
         default:
             printf("BAD NODE: %i\n", node->type);

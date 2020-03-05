@@ -2,4 +2,7 @@ include "my/path/library"
 include "my/path/library" myident
 
 typedef mytype int32
-
+typedef mytype mod1->type1
+typedef mytype int32 *
+typedef mytype int32[]
+typedef mytype int32[1]
