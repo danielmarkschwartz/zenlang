@@ -88,6 +88,7 @@ enum token_type {
     TOKEN_BOR,
     TOKEN_RCURL,
     TOKEN_BNOT,
+    TOKEN_RARR,
 
     TOKEN_MAX
 };
