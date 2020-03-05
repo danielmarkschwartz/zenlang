@@ -1,2 +1,5 @@
 include "my/path/library"
 include "my/path/library" myident
+
+typedef mytype int32
+

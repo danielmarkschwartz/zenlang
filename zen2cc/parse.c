@@ -22,8 +22,38 @@ char err[ERR_LEN];
     n->type = NODE_NONE;\
     return err;\
 }while(0)
-#define status_append(s) do{ assert(++p->status_i < PARSE_MAX_DEPTH); p->status[p->status_i] = (s); n->type = NODE_NONE; return NULL;}while(0)
-#define status_set(s) do{ p->status[p->status_i] = (s); n->type = NODE_NONE; return NULL;}while(0)
+
+#define status_append(s) do{\
+    assert(++p->status_i < PARSE_MAX_DEPTH);\
+    p->status[p->status_i] = (s);\
+    n->type = NODE_NONE;\
+    return NULL;\
+}while(0)
+
+#define status_set(s) do{\
+    p->status[p->status_i] = (s);\
+    n->type = NODE_NONE;\
+    return NULL;\
+}while(0)
+
+#define status_yield(s, P, N) do{\
+    p->status[p->status_i] = (s);\
+    n->type = (P);\
+    size_t NN = (N);\
+    assert(NN <= PARSE_NODE_MAX_TOKEN);\
+    assert(NN <= p->stack_i);\
+    n->type = (P);\
+    for(int i = 0; i < NN; i++)\
+        n->t[i] = p->stack[p->stack_i + i - NN];\
+    p->stack_i -= NN;\
+    return NULL;\
+}while(0)
+
+#define status_set_return(s) do{\
+    p->status[p->status_i] = (s);\
+    n->type = NODE_NONE;\
+}while(0)
+
 #define _status_pop(s, N) do{\
     size_t NN = (N);\
     assert(p->status_i > 0);\
@@ -35,12 +65,27 @@ char err[ERR_LEN];
         n->t[i] = p->stack[p->stack_i + i - NN];\
     p->stack_i -= NN;\
 }while(0)
+
 #define status_pop(s, N) do{\
     _status_pop(s,N);\
-    break;\
-}while(0)
+}while(0); continue
+
 #define status_pop_consume(s, N) do{\
     _status_pop(s,N);\
+    return NULL;\
+}while(0)
+
+#define status_begin(s, r, P, N) do{\
+    p->status[p->status_i] = (r);\
+    assert(++p->status_i < PARSE_MAX_DEPTH);\
+    p->status[p->status_i] = (s);\
+    size_t NN = (N);\
+    assert(NN <= PARSE_NODE_MAX_TOKEN);\
+    assert(NN <= p->stack_i);\
+    n->type = (P);\
+    for(int i = 0; i < NN; i++)\
+        n->t[i] = p->stack[p->stack_i + i - NN];\
+    p->stack_i -= NN;\
     return NULL;\
 }while(0)
 
@@ -51,7 +96,7 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
     assert(n);
 
     for(;;) {
-        printf("PARSING %i\n", p->status[p->status_i]);
+        //printf("PARSING %i\n", p->status[p->status_i]);
         switch(p->status[p->status_i]) {
             //Document top level
             case PARSE_ROOT:
@@ -63,6 +108,7 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
                     case TOKEN_CONST: status_append(PARSE_CONST);
                     case TOKEN_LET: status_append(PARSE_LET);
                     case TOKEN_INCLUDE: status_append(PARSE_INCLUDE);
+                    case TOKEN_EOF:
                     case TOKEN_NEWLINE: n->type = NODE_NONE; return NULL;
                     default: bad_token("typdef, func, struct, enum, const, let, or include");
                 } break;
@@ -92,6 +138,65 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
                     bad_token("; at end of include statement");
                 status_pop_consume(NODE_INCLUDE_DEFINE, 2);
 
+            //^typedef ident type_expr$
+            //         ^
+            case PARSE_TYPEDEF:
+                if(t.type != TOKEN_IDENT)
+                    bad_token("type identifier");
+
+                status_append_token(t);
+                status_begin(PARSE_TYPE_EXPR, PARSE_TYPEDEF_FINAL, NODE_TYPEDEF_BEGIN, 1);
+
+            //^typedef ident type_expr$
+            //                        ^
+            case PARSE_TYPEDEF_FINAL:
+                if(t.type != TOKEN_NEWLINE && t.type != TOKEN_EOF)
+                    bad_token("newline after typedef");
+                status_pop_consume(NODE_TYPEDEF_END,0);
+
+            //ident
+            //ident -> type_expr
+            //func ( type_args ) type_expr
+            //struct { type_args }
+            //type_expr []
+            //type_expr [ expr ]
+            //type_expr *
+
+            // initial: ident, func, struct
+            // follow_ident_only:  -> ident
+            // follow: *, [],
+            case PARSE_TYPE_EXPR:
+                switch(t.type) {
+                    case TOKEN_IDENT:
+                        status_append_token(t);
+                        status_yield(PARSE_TYPE_EXPR_FOLLOW_IDENT, NODE_TYPE_IDENT, 1);
+                    case TOKEN_FUNC:
+                        status_set(PARSE_TYPE_EXPR_FUNC);
+                    case TOKEN_STRUCT:
+                        status_set(PARSE_TYPE_EXPR_STRUCT);
+
+                    default: bad_token("type expression");
+                }
+
+            case PARSE_TYPE_EXPR_FOLLOW_IDENT:
+                switch(t.type) {
+                    case TOKEN_RARR:
+                        status_set(PARSE_TYPE_EXPR_ACCESS);
+                    case TOKEN_LBRA:
+                        status_set(PARSE_TYPE_EXPR_ARRAY);
+                    case TOKEN_MUL:
+                        status_set(PARSE_TYPE_EXPR_POINTER);
+                    default: break;
+                };
+                p->status_i--;
+                continue;
+
+            case PARSE_TYPE_EXPR_FUNC:
+
+            case PARSE_TYPE_EXPR_STRUCT:
+
+
+
             default: printf("BAD PARSE STATE %i\n", p->status[p->status_i]); assert(0); //Should not be reached
         }
     }
@@ -99,14 +204,29 @@ char * parse_token(struct parse_state *p, struct parse_node *n, struct token t){
     return NULL;
 }
 
+#define print_space() for(int i = 0; i < level; i++) printf("  ")
+
 void parse_node_print(struct parse_node *node) {
     assert(node);
+    static int level = 0;
     switch(node->type) {
-        case NODE_NONE: printf("...\n"); break;
+        case NODE_NONE: print_space(); printf("...\n"); break;
         case NODE_INCLUDE:
+            print_space();
             printf("include %s;\n", node->t[0].value); break;
         case NODE_INCLUDE_DEFINE:
+            print_space();
             printf("include %s as %s;\n", node->t[0].value, node->t[1].value); break;
+        case NODE_TYPEDEF_BEGIN:
+            print_space();
+            printf("typedef %s\n", node->t[0].value); level++; break;
+        case NODE_TYPEDEF_END:
+            level--;
+            print_space();
+            printf("typedef_end\n"); break;
+        case NODE_TYPE_IDENT:
+            print_space();
+            printf("type_ident %s\n", node->t[0].value); break;
 
         default:
             printf("BAD NODE: %i\n", node->type);

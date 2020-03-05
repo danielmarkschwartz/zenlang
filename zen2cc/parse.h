@@ -9,6 +9,7 @@ enum parse_status {
     PARSE_ERR = -1,
     PARSE_ROOT = 0,
     PARSE_TYPEDEF,
+    PARSE_TYPEDEF_FINAL,
     PARSE_FUNC,
     PARSE_STRUCT,
     PARSE_ENUM,
@@ -17,6 +18,14 @@ enum parse_status {
     PARSE_INCLUDE,
     PARSE_INCLUDE_IDENT,
     PARSE_INCLUDE_NEWLINE,
+    PARSE_TYPE_EXPR,
+    PARSE_TYPE_EXPR_FOLLOW_IDENT,
+    PARSE_TYPE_EXPR_FOLLOW_ANY,
+    PARSE_TYPE_EXPR_FUNC,
+    PARSE_TYPE_EXPR_STRUCT,
+    PARSE_TYPE_EXPR_ACCESS,
+    PARSE_TYPE_EXPR_ARRAY,
+    PARSE_TYPE_EXPR_POINTER,
 };
 
 struct parse_state {
@@ -30,6 +39,9 @@ enum parse_node_type {
     NODE_NONE = 0,
     NODE_INCLUDE,           //Simple include statement `include "package"`
     NODE_INCLUDE_DEFINE,    //Include statement with package definition
+    NODE_TYPEDEF_BEGIN,     //Start typdef node, t[0] == ident, follows type_expr
+    NODE_TYPEDEF_END,       //End typedef type_expr
+    NODE_TYPE_IDENT,        //Type identifier
 };
 
 #define PARSE_NODE_MAX_TOKEN 5
