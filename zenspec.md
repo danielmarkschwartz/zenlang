@@ -283,3 +283,18 @@ similar to a struct definition, surrounded by parens. Next, the return value(s)
 are specified using a comma delimited list. At least one return value must be
 specified, but can be void. Lastly curly braces enclose a list of expressions
 that make up the body of the function.
+
+### Type Expressions
+
+Types are compile time entities that exist in a seperate namespace from other
+identifiers. They consist of predifined type privatives and compound types
+defined using typedef, struct, enum, or union.
+
+Type expressions are used to express the type of an object in casts,
+structure/union declarations, function agruments, and typedefs.
+
+The simiplest form of type expression is simply an identifier corresponiding to
+a declared type. This can be followed by '*' to indicate a pointer of that type,
+or '[]' to indicate an array. Array brackets can contain an expression that can
+be evaluted at compile time to an integer, to indicate the array size.
+
