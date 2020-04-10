@@ -1,6 +1,6 @@
 #pragma once
-
-#include "stream.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 enum token_type {
     TOKEN_ERR = 0,
@@ -95,12 +95,32 @@ enum token_type {
 
 struct token {
     enum token_type type;
-    int line, col;
-    char *value;
+    char * str;
+    uint32_t len;
 };
 
-struct token token_next(struct stream *s);
-void token_free(struct token t);
-void token_print(struct token t);
-
 extern char *token_type_str[TOKEN_MAX];
+
+struct token token_next(char **s, char *end);
+
+#define TOKEN_BUF_SIZE 512
+
+struct token_stream {
+    char *text;         //mmap'd text buffer
+    int offset;     //current offset in to text buffer
+    int len;            //length of text buffer
+
+    char *path;         //file path of text buffer
+
+    struct token buf[TOKEN_BUF_SIZE];
+    int buf_i, buf_c;
+};
+
+bool token_stream_init(struct token_stream *ts, char *path);
+struct token token_stream_next(struct token_stream *ts);
+void token_stream_mark(struct token_stream *ts);
+void token_stream_rewind(struct token_stream *ts);
+void token_stream_unmark(struct token_stream *ts);
+
+void token_pos(struct token_stream *ts, struct token t, int *row, int *col);
+void token_print(struct token_stream *ts, struct token t);

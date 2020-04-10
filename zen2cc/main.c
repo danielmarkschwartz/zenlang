@@ -24,8 +24,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    struct stream s;
-    if(!stream_init_file(&s, filename)) {
+    struct token_stream ts;
+    if(!token_stream_init(&ts, filename)) {
         fprintf(stderr, "ERR: Could not open file \"%s\"\n", filename);
         return 2;
     }
@@ -36,9 +36,9 @@ int main(int argc, char **argv) {
     parse_init(&p);
 
     do {
-        t = token_next(&s);
+        t = token_stream_next(&ts);
         if(output == TOKENS) {
-            token_print(t);
+            token_print(&ts, t);
             continue;
         }
 

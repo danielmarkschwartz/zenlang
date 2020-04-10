@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "common.h"
 #include "parse.h"
 
@@ -17,8 +19,8 @@ char err[ERR_LEN];
 #define bad_token(exp) do{\
     p->status[p->status_i] = PARSE_ERR;\
     snprintf(err, ERR_LEN,\
-            "line %i col %i - Unexpected token %s (%s), expected %s",\
-            t.line, t.col, token_type_str[t.type], t.value ? t.value : "", (exp));\
+            "line - Unexpected token %s (%.*s), expected %s",\
+            token_type_str[t.type], t.len, t.str, (exp));\
     n->type = NODE_NONE;\
     return err;\
 }while(0)
@@ -256,23 +258,23 @@ void parse_node_print(struct parse_node *node) {
         case NODE_NONE: print_space(); printf("...\n"); break;
         case NODE_INCLUDE:
             print_space();
-            printf("include %s;\n", node->t[0].value); break;
+            printf("include %.*s;\n", node->t[0].len, node->t[0].str); break;
         case NODE_INCLUDE_DEFINE:
             print_space();
-            printf("include %s as %s;\n", node->t[0].value, node->t[1].value); break;
+            printf("include %.*s as %.*s;\n", node->t[0].len, node->t[0].str, node->t[1].len, node->t[1].str); break;
         case NODE_TYPEDEF_BEGIN:
             print_space();
-            printf("typedef %s\n", node->t[0].value); level++; break;
+            printf("typedef %.*s\n", node->t[0].len, node->t[0].str); level++; break;
         case NODE_TYPEDEF_END:
             level--;
             print_space();
             printf("typedef_end\n"); break;
         case NODE_TYPE_IDENT:
             print_space();
-            printf("type_ident %s\n", node->t[0].value); break;
+            printf("type_ident %.*s\n", node->t[0].len, node->t[0].str); break;
         case NODE_TYPE_ACCESS:
             print_space();
-            printf("type_access -> %s\n", node->t[0].value); break;
+            printf("type_access -> %.*s\n", node->t[0].len, node->t[0].str); break;
         case NODE_TYPE_POINTER:
             print_space();
             printf("type_pointer \n"); break;
@@ -288,7 +290,7 @@ void parse_node_print(struct parse_node *node) {
 
         case NODE_NUM:
             print_space();
-            printf("number %s\n", node->t[0].value); break;
+            printf("number %.*s\n", node->t[0].len, node->t[0].str); break;
 
         default:
             printf("BAD NODE: %i\n", node->type);

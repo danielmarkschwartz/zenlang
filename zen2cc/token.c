@@ -1,7 +1,13 @@
 #include <assert.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "token.h"
 
 char *token_type_str[TOKEN_MAX] = {
@@ -107,11 +113,11 @@ static char *keywords[KEYWORDS_NUM] = {
     "switch", "typedef", "union", "volatile"
 };
 
-static bool is_space(int c) {
+static bool is_space(char c) {
     return c == ' ' || c == '\t' ||  c == '\r';
 }
 
-static bool is_punct(int c) {
+static bool is_punct(char c) {
     switch(c) {
         case '!': case '#': case '%': case '&': case '(': case ')': case '*':
         case '+': case ',': case '-': case '.': case '/': case ':': case ';':
@@ -122,27 +128,27 @@ static bool is_punct(int c) {
     return false;
 }
 
-static bool is_digit(int c) {
+static bool is_digit(char c) {
     return c >= '0' && c <= '9';
 }
 
-static bool is_hex(int c) {
+static bool is_hex(char c) {
     return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || ( c >= 'A' && c <= 'F');
 }
 
-static bool is_alpha(int c) {
+static bool is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static bool is_ident(int c) {
-    return is_alpha(c) || is_digit(c) || c == '_';
+static bool is_ident(char c) {
+    return is_alpha((int)c) || is_digit((int)c) || c == '_';
 }
 
-static bool is_ident_initial(int c) {
-    return is_alpha(c) || c == '_';
+static bool is_ident_initial(char c) {
+    return is_alpha((int)c) || c == '_';
 }
 
-static bool is_numeric(int c) {
+static bool is_numeric(char c) {
     switch(c){
         case '-': case '.': case '_': case 'x': case 'X': case 'o': case 'O':
         case 'b': case 'B': case 'p': case 'P':
@@ -151,273 +157,339 @@ static bool is_numeric(int c) {
     return is_hex(c);
 }
 
-static bool is_numeric_initial(int c) {
-    return is_digit(c);
+static bool is_numeric_initial(char c) {
+    return is_digit((int)c);
 }
 
-static bool is_str_initial(int c) {
+static bool is_str_initial(char c) {
     return c == '"' || c == '\'';
 }
 
-void skip_comment_line(struct stream *s) {
-    int c;
-    while(c = stream_getc(s), c != '\n' && c != EOF);
+#define CHAR_NEXT(s) *((*s)++)
+
+void skip_comment_line(char **s, char *end) {
+    char c;
+    while(c = CHAR_NEXT(s), c != '\n' && *s <= end);
 }
 
-bool skip_comment_multiline(struct stream *s) {
+bool skip_comment_multiline(char **s, char *end) {
     for(;;) {
-        int c = stream_getc(s);
-        if(c == EOF) return false;
+        int c = CHAR_NEXT(s);
+        if(*s >= end) return false;
         if(c != '*') continue;
-        c = stream_getc(s);
+        c = CHAR_NEXT(s);
         if(c == '/') return true;
     }
 }
 
 
-struct token token_next(struct stream *s) {
+struct token token_next(char **s, char *end) {
     assert(s);
 
-    int c, cn;
-    char buf[BUFSIZ];
-    int N = 0;
-
 start:
-    while(c = stream_getc(s), is_space(c));
-    stream_ungetc(s);
+    while(is_space(**s)) (*s)++;
 
     struct token t = (struct token){
         .type = TOKEN_ERR,
-        .line = s->line,
-        .col = s->col
+        .str = *s,
+        .len = 0
     };
 
-    c = stream_getc(s);
-
-    if(c == EOF) {
+    if(*s >= end) {
         t.type = TOKEN_EOF;
-    } else if(c == '\n') {
+    } else if(**s == '\n') {
         t.type = TOKEN_NEWLINE;
-    } else if(is_punct(c)) {
-        cn = stream_getc(s);
-        switch(c) {
+        (*s)++;
+    } else if(is_punct(**s)) {
+        switch(**s) {
             case '!':
-                if(cn == '=') t.type = TOKEN_NE;
-                else {t.type = TOKEN_NOT; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_NE, (*s)++;
+                else t.type = TOKEN_NOT;
                 break;
             case '#':
-                t.type = TOKEN_HASH; stream_ungetc(s);
+                t.type = TOKEN_HASH;
                 break;
             case '%':
-                if(cn == '=') t.type = TOKEN_MODASSIGN;
-                else {t.type = TOKEN_MOD; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_MODASSIGN, (*s)++;
+                else t.type = TOKEN_MOD;
                 break;
             case '&':
-                if(cn == '&') t.type = TOKEN_AND;
-                else if(cn == '=') t.type = TOKEN_BANDASSIGN;
-                else {t.type = TOKEN_BAND; stream_ungetc(s);}
+                if((*s)[1] == '&') t.type = TOKEN_AND, (*s)++;
+                else if((*s)[1] == '=') t.type = TOKEN_BANDASSIGN, (*s)++;
+                else t.type = TOKEN_BAND;
                 break;
             case '(':
-                t.type = TOKEN_LPAREN; stream_ungetc(s);
+                t.type = TOKEN_LPAREN;
                 break;
             case ')':
-                t.type = TOKEN_RPAREN; stream_ungetc(s);
+                t.type = TOKEN_RPAREN;
                 break;
             case '*':
-                if(cn == '=') t.type = TOKEN_MULASSIGN;
-                else {t.type = TOKEN_MUL; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_MULASSIGN, (*s)++;
+                else t.type = TOKEN_MUL;
                 break;
             case '+':
-                if(cn == '+') t.type = TOKEN_INC;
-                else if(cn == '=') t.type = TOKEN_ADDASSIGN;
-                else {t.type = TOKEN_ADD; stream_ungetc(s);}
+                if((*s)[1] == '+') t.type = TOKEN_INC, (*s)++;
+                else if((*s)[1] == '=') t.type = TOKEN_ADDASSIGN, (*s)++;
+                else t.type = TOKEN_ADD;
                 break;
             case ',':
-                t.type = TOKEN_COMMA; stream_ungetc(s);
+                t.type = TOKEN_COMMA;
                 break;
             case '-':
-                if(cn == '-') t.type = TOKEN_DEC;
-                else if(cn == '=') t.type = TOKEN_SUBASSIGN;
-                else if(cn == '>') t.type = TOKEN_RARR;
-                else {t.type = TOKEN_SUB; stream_ungetc(s);}
+                if((*s)[1] == '-') t.type = TOKEN_DEC, (*s)++;
+                else if((*s)[1] == '=') t.type = TOKEN_SUBASSIGN, (*s)++;
+                else if((*s)[1] == '>') t.type = TOKEN_RARR, (*s)++;
+                else t.type = TOKEN_SUB;
                 break;
             case '.':
-                t.type = TOKEN_DOT; stream_ungetc(s);
+                t.type = TOKEN_DOT;
                 break;
             case '/':
-                if(cn == '=') t.type = TOKEN_DIVASSIGN;
-                else if(cn == '/') {
-                    skip_comment_line(s);
+                if((*s)[1] == '=') t.type = TOKEN_DIVASSIGN, (*s)++;
+                else if((*s)[1] == '/') {
+                    skip_comment_line(s, end);
                     goto start;
-                } else if(cn == '*') {
-                    if(!skip_comment_multiline(s)) {
-                        t.value = strdup("EOF while parsing comment /*");
+                } else if((*s)[1] == '*') {
+                    if(!skip_comment_multiline(s, end)) {
+                        t.str = strdup("EOF while parsing comment /*");
                         return t;
                     }
                     goto start;
-                } else {t.type = TOKEN_DIV; stream_ungetc(s);}
+                } else t.type = TOKEN_DIV;
                 break;
             case ':':
-                if(cn == '=') t.type = TOKEN_DEFASSIGN;
-                else {t.type = TOKEN_COLON; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_DEFASSIGN, (*s)++;
+                else t.type = TOKEN_COLON;
                 break;
             case ';':
-                t.type = TOKEN_SEMICOLON; stream_ungetc(s);
+                t.type = TOKEN_SEMICOLON;
                 break;
             case '<':
-                if(cn == '=') t.type = TOKEN_LE;
-                else if(cn == '<') {
-                    cn = stream_getc(s);
-                    if(cn == '=') t.type = TOKEN_BSLASSIGN;
-                    else {
-                        t.type = TOKEN_BSL;
-                        stream_ungetc(s);
-                    }
-                } else {t.type = TOKEN_LT; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_LE, (*s)++;
+                else if((*s)[1] == '<') {
+                    if((*s)[2] == '=') t.type = TOKEN_BSLASSIGN, (*s)+=2;
+                    else t.type = TOKEN_BSL, (*s)++;
+                } else t.type = TOKEN_LT;
                 break;
             case '=':
-                if(cn == '=') t.type = TOKEN_EQ;
-                else {t.type = TOKEN_ASSIGN; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_EQ, (*s)++;
+                else t.type = TOKEN_ASSIGN;
                 break;
             case '>':
-                if(cn == '=') t.type = TOKEN_GE;
-                else if(cn == '>') {
-                    cn = stream_getc(s);
-                    if(cn == '=') t.type = TOKEN_BSRASSIGN;
-                    else {
-                        t.type = TOKEN_BSR;
-                        stream_ungetc(s);
-                    }
-                } else {t.type = TOKEN_GT; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_GE, (*s)++;
+                else if((*s)[1] == '>') {
+                    if((*s)[2] == '=') t.type = TOKEN_BSRASSIGN, (*s)+=2;
+                    else t.type = TOKEN_BSR, (*s)++;
+                } else t.type = TOKEN_GT;
                 break;
-            case '?':
-                t.type = TOKEN_QM; stream_ungetc(s);
-                break;
-            case '@':
-                t.type = TOKEN_AT; stream_ungetc(s);
-                break;
-            case '[':
-                t.type = TOKEN_LBRA; stream_ungetc(s);
-                break;
-            case '\\':
-                t.type = TOKEN_BSLASH; stream_ungetc(s);
-                break;
-            case ']':
-                t.type = TOKEN_RBRA; stream_ungetc(s);
-                break;
+            case '?': t.type = TOKEN_QM; break;
+            case '@': t.type = TOKEN_AT; break;
+            case '[': t.type = TOKEN_LBRA; break;
+            case '\\': t.type = TOKEN_BSLASH; break;
+            case ']': t.type = TOKEN_RBRA; break;
             case '^':
-                if(cn == '=') t.type = TOKEN_XORASSIGN;
-                else {t.type = TOKEN_XOR; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_XORASSIGN, (*s)++;
+                else t.type = TOKEN_XOR;
                 break;
-            case '{':
-                t.type = TOKEN_LCURL; stream_ungetc(s);
-                break;
+            case '{': t.type = TOKEN_LCURL; break;
             case '|':
-                if(cn == '=') t.type = TOKEN_BORASSIGN;
-                else if(cn == '|') t.type = TOKEN_OR;
-                else {t.type = TOKEN_BOR; stream_ungetc(s);}
+                if((*s)[1] == '=') t.type = TOKEN_BORASSIGN, (*s)++;
+                else if((*s)[1] == '|') t.type = TOKEN_OR, (*s)++;
+                else t.type = TOKEN_BOR;
                 break;
-            case '}':
-                t.type = TOKEN_RCURL; stream_ungetc(s);
-                break;
-            case '~':
-                t.type = TOKEN_BNOT; stream_ungetc(s);
-                break;
+            case '}': t.type = TOKEN_RCURL; break;
+            case '~': t.type = TOKEN_BNOT; break;
             default: assert(false);
         }
 
-    }else if(is_ident_initial(c)) {
-        buf[N++] = (char)c;
+        (*s)++;
 
-        while(c = stream_getc(s), is_ident(c)) {
-            assert(N < BUFSIZ - 1);
-            buf[N++] = (char)c;
-        }
-
-        stream_ungetc(s);
-
-        assert(N < BUFSIZ - 1);
-        buf[N++] = 0;
-
+    }else if(is_ident_initial(**s)) {
         t.type = TOKEN_IDENT;
+        t.str = (*s)++;
+        t.len = 1;
+
+        while(is_ident(**s)) (*s)++, t.len++;
 
         for(int i = 0; i < KEYWORDS_NUM; i++)
-            if(strcmp(keywords[i], buf) == 0) {
+            if(t.len == strlen(keywords[i]) && strncmp(keywords[i], t.str, t.len) == 0) {
                 t.type = TOKEN_BREAK + i;
+                t.len = 0;
                 break;
             }
 
-        if(t.type == TOKEN_IDENT)
-            t.value = strdup(buf);
-        else t.value = 0;
-
-    } else if(is_numeric_initial(c)) {
-        buf[N++] = (char)c;
-
-        while(c = stream_getc(s), is_numeric(c)) {
-            assert(N < BUFSIZ - 1);
-            buf[N++] = (char)c;
-        }
-
-        stream_ungetc(s);
-
-        assert(N < BUFSIZ - 1);
-        buf[N++] = 0;
-
+    } else if(is_numeric_initial(**s)) {
         t.type = TOKEN_NUM;
-        t.value = strdup(buf);
+        t.str = (*s)++;
+        t.len = 1;
 
-    } else if(is_str_initial(c)) {
-        char q = c;
+        while(is_numeric(**s)) (*s)++, t.len++;
+
+    } else if(is_str_initial(**s)) {
+        char q = *((*s)++);
         bool esc = q == '"';
         bool after_bt = false;
 
+        t.type = esc ? TOKEN_STR_ESC : TOKEN_STR;
+        t.str = *s;
+        t.len = 0;
+
         //Consume string
         for(;;) {
-            c = stream_getc(s);
-
-            if(c == EOF) {
+            if(*s >= end) {
                 t.type = TOKEN_ERR;
-                t.value = strdup("EOF while parsing string");
+                t.str = strdup("EOF while parsing string");
                 return t;
             }
 
-            if((!esc || !after_bt) && c == q) break;
+            if((!esc || !after_bt) && **s == q) break;
+            after_bt = !after_bt && **s == '\\';
 
-            assert(N < BUFSIZ - 1);
-            buf[N++] = (char)c;
-            after_bt = !after_bt && c == '\\';
+            t.len++;
+            (*s)++;
         }
 
-        assert(N < BUFSIZ - 1);
-        buf[N++] = 0;
+        (*s)++;
 
-        t.type = esc ? TOKEN_STR_ESC : TOKEN_STR;
-        t.value = strdup(buf);
 
     }  else {
         //Otherwise is ERR
-        t.value = strdup("Unrecognized character");
+        t.str = strdup("Unrecognized character");
     }
 
 
     return t;
 }
 
-void token_free(struct token t) {
-    if(t.value) free(t.value);
+void token_pos(struct token_stream *ts, struct token t, int *row, int *col) {
+    assert(t.str);
+    assert(ts);
+    assert(ts->text);
+    assert(t.str <= ts->text + ts->len);
+
+    int r=1,c=1;
+    char *s = ts->text;
+    while(s < t.str) {
+       if(*s == '\n') r++,c=1;
+       else c++;
+       s++;
+    }
+
+    *row = r, *col = c;
 }
 
-void token_print(struct token t) {
+void token_print(struct token_stream *ts, struct token t) {
 
     char *s = token_type_str[t.type];
 
-    if(t.value)
-        printf("%s [%i col %i] - \"%s\"", s, t.line, t.col, t.value);
+    //TODO: implement line, col finding
+    int line = 0, col = 0;
+    token_pos(ts, t, &line, &col);
+
+    if(t.type == TOKEN_STR || t.type == TOKEN_STR_ESC) col--;
+
+    if(t.len)
+        printf("%s [%i col %i] - \"%.*s\"", s, line, col, t.len, t.str);
     else
-        printf("%s [%i col %i]", s, t.line, t.col);
+        printf("%s [%i col %i]", s, line, col);
 
     if(t.type >= TOKEN_NE)
         printf(" %s\n", punct[t.type - TOKEN_NE]);
     else printf("\n");
+}
+
+bool token_stream_init(struct token_stream *ts, char *path) {
+    assert(ts);
+    assert(path);
+
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) return false;
+
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) goto err;
+
+    ts->text = mmap(NULL, sb.st_size+1, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (ts->text == MAP_FAILED) goto err;
+
+    ts->len = sb.st_size;
+    ts->path = strdup(path);
+    ts->offset = 0;
+    ts->buf_c = 0;
+    ts->buf_i = 0;
+
+    close(fd);
+    return true;
+
+err:
+    close(fd);
+    return false;
+}
+
+void token_stream_close(struct token_stream *ts) {
+    if(ts->text) munmap(ts->text, ts->len);
+    if(ts->path) free(ts->path);
+    ts->text = 0;
+    ts->offset = 0;
+    ts->len = 0;
+    ts->path = 0;
+    ts->buf_c = 0;
+    ts->buf_i = 0;
+}
+
+//Fill token stream buffer as much as possible. Will keep any tokens
+//in buffer that are required for a mark
+void token_stream_fill(struct token_stream *ts) {
+    assert(ts);
+
+    //TODO: only clear out unmarked tokens
+    ts->buf_c -= ts->buf_i;
+    ts->buf_i = 0;
+
+    char *s = ts->text + ts->offset;
+    while(ts->buf_c < 2*TOKEN_BUF_SIZE)  {
+        struct token t = token_next(&s, ts->text + ts->len);
+        ts->buf[ts->buf_c++] = t;
+        if(t.type == TOKEN_EOF) break;
+    }
+
+    ts->offset = s - ts->text;
+    assert(ts->offset <= ts->len);
+}
+
+//Get next token from buffer. Will return EOF token continually once end
+//of stream is reached.
+struct token token_stream_next(struct token_stream *ts) {
+    assert(ts);
+    if(ts->buf_i >= ts->buf_c) token_stream_fill(ts);
+    assert(ts->buf_i < ts->buf_c);
+
+    if(ts->buf[ts->buf_i].type == TOKEN_EOF)
+        return ts->buf[ts->buf_i];
+
+    return ts->buf[ts->buf_i++];
+}
+
+//Save this location in the token stream as a rewind point.
+//The next call to token_stream_rewind() will reset the stream state to what it is
+//now, undoing and token_stream_next() calls. Multiple calls to token_stream_mark()
+//are allowed, up to TOKEN_STREAM_MARK_MAX, each of which pops the state on a stack
+//which is unwound one step by each call to *_rewind().
+void token_stream_mark(struct token_stream *ts) {
+    assert(ts);
+    //TODO: implement
+}
+
+//Rewinds the stream back to the last call of token_stream_mark()
+//Does not clear mark,
+void token_stream_rewind(struct token_stream *ts) {
+    assert(ts);
+    //TODO: implement
+}
+
+//Remove most recent mark without changing the stream status. Marks should be removed
+//this way when they are no longer needed
+void token_stream_unmark(struct token_stream *ts) {
+    assert(ts);
+    //TODO: implement
 }
