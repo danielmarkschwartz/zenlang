@@ -3,6 +3,57 @@
 
 #include "token.h"
 
+enum type_type {
+    TYPE_NONE = -2,
+    TYPE_ERR = -1,
+
+    TYPE_VOID = 0,
+    TYPE_PRIMATIVE,
+};
+
+enum type_primative {
+    TYPE_INT = 0,
+    TYPE_INT8,
+    TYPE_INT16,
+    TYPE_INT32,
+    TYPE_INT64,
+
+    TYPE_UINT,
+    TYPE_UINT8,
+    TYPE_UINT16,
+    TYPE_UINT32,
+    TYPE_UINT64,
+
+    TYPE_FLOAT,
+    TYPE_FLOAT16,
+    TYPE_FLOAT32,
+    TYPE_FLOAT64,
+
+    TYPE_NUM
+};
+
+extern char *type_primative_str[];
+
+struct type {
+    enum type_type type;
+    union {
+        enum type_primative primative;
+    };
+};
+
+#define TS_INITIAL_CAP 8
+
+struct ts {
+    char **key;
+    struct type *val;
+    int c, n;
+};
+
+void ts_init(struct ts *ts);
+void ts_free(struct ts *ts);
+void ts_set(struct ts *ts, char *key, struct type val);
+struct type *ts_get(struct ts *ts, char *key);
+
 enum val_type {
     VAL_MODULE
 };
@@ -37,7 +88,10 @@ typedef void (*error_func)(struct token_stream *ts, struct token, char*);
 struct parse{
     struct token_stream *ts;
     struct ns globals;
+    struct ts types;
     error_func error;
+
+    struct type type;
 };
 
 void parse_init(struct parse *p, struct token_stream *ts, error_func err);
