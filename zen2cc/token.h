@@ -103,7 +103,8 @@ extern char *token_type_str[TOKEN_MAX];
 
 struct token token_next(char **s, char *end);
 
-#define TOKEN_BUF_SIZE 512
+#define TOKEN_BUF_SIZE (1024)
+#define TOKEN_MARK_MAX 4
 
 struct token_stream {
     char *text;         //mmap'd text buffer
@@ -114,13 +115,18 @@ struct token_stream {
 
     struct token buf[TOKEN_BUF_SIZE];
     int buf_i, buf_c;
+
+    int mark[TOKEN_MARK_MAX];
+    int mark_n;
 };
 
 bool token_stream_init(struct token_stream *ts, char *path);
+struct token token_stream_peek(struct token_stream *ts);
 struct token token_stream_next(struct token_stream *ts);
 void token_stream_mark(struct token_stream *ts);
 void token_stream_rewind(struct token_stream *ts);
 void token_stream_unmark(struct token_stream *ts);
 
 void token_pos(struct token_stream *ts, struct token t, int *row, int *col);
+char *token_str(struct token t);
 void token_print(struct token_stream *ts, struct token t);

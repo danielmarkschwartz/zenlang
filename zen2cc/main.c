@@ -4,6 +4,12 @@
 #include "token.h"
 #include "parse.h"
 
+void print_err(struct token_stream *ts, struct token t, char *msg) {
+    int row, col;
+    token_pos(ts, t, &row, &col);
+    fprintf(stderr, "ERROR [%i:%i] %s\n", row, col, msg);
+}
+
 int main(int argc, char **argv) {
     enum {TOKENS, PARSE, CC} output = CC;
 
@@ -30,30 +36,32 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    struct token t;
-    struct parse_state p;
+    if(output == TOKENS) {
+        struct token t;
 
-    parse_init(&p);
-
-    do {
-        t = token_stream_next(&ts);
-        if(output == TOKENS) {
+        do {
+            t = token_stream_next(&ts);
             token_print(&ts, t);
-            continue;
-        }
+        } while(t.type != TOKEN_ERR && t.type != TOKEN_EOF);
 
-        struct parse_node n;
-        char *err = parse_token(&p, &n, t);
-        if(err) {
-            fprintf(stdout, "PERR: %s\n", err);
-            break;
-        }
+        return 0;
+    }
 
+    struct parse p;
+    parse_init(&p, &ts, print_err);
+    int errnum = parse(&p);
+    if(errnum) printf("GOT %i ERRORS\n", errnum);
 
-        if(output == PARSE) {
-            parse_node_print(&n);
+    printf("\nGlobal namespace\n");
+    if(output == PARSE) {
+        struct ns ns = p.globals;
+        for(int i = 0; i < ns.n; i++) {
+            printf("%s: ", ns.key[i]);
+            switch(ns.val[i].type){
+            case VAL_MODULE: printf("MODULE '%s'\n", ns.val[i].mod.path);
+            }
         }
-    } while(t.type != TOKEN_ERR && t.type != TOKEN_EOF);
+    }
 
     parse_free(&p);
 

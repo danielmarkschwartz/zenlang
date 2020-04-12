@@ -379,11 +379,19 @@ void token_pos(struct token_stream *ts, struct token t, int *row, int *col) {
     *row = r, *col = c;
 }
 
+//Allocates a malloc'd string with a copy of this token as a string.
+char *token_str(struct token t) {
+    char *str = malloc(t.len + 1);
+    assert(str);
+    memcpy(str, t.str, t.len);
+    str[t.len] = '\0';
+    return str;
+}
+
 void token_print(struct token_stream *ts, struct token t) {
 
     char *s = token_type_str[t.type];
 
-    //TODO: implement line, col finding
     int line = 0, col = 0;
     token_pos(ts, t, &line, &col);
 
@@ -417,6 +425,7 @@ bool token_stream_init(struct token_stream *ts, char *path) {
     ts->offset = 0;
     ts->buf_c = 0;
     ts->buf_i = 0;
+    ts->mark_n = 0;
 
     close(fd);
     return true;
@@ -435,6 +444,7 @@ void token_stream_close(struct token_stream *ts) {
     ts->path = 0;
     ts->buf_c = 0;
     ts->buf_i = 0;
+    ts->mark_n = 0;
 }
 
 //Fill token stream buffer as much as possible. Will keep any tokens
@@ -443,6 +453,8 @@ void token_stream_fill(struct token_stream *ts) {
     assert(ts);
 
     //TODO: only clear out unmarked tokens
+    assert(ts->mark_n == 0);
+
     ts->buf_c -= ts->buf_i;
     ts->buf_i = 0;
 
@@ -459,15 +471,27 @@ void token_stream_fill(struct token_stream *ts) {
 
 //Get next token from buffer. Will return EOF token continually once end
 //of stream is reached.
+struct token token_stream_peek(struct token_stream *ts) {
+    assert(ts);
+
+    if(ts->buf_i > ts->buf_c || ts->buf_c == 0) token_stream_fill(ts);
+    assert(ts->buf_i <= ts->buf_c);
+
+    return ts->buf[ts->buf_i];
+}
+
+//View next token in buffer without consuming
 struct token token_stream_next(struct token_stream *ts) {
     assert(ts);
     if(ts->buf_i >= ts->buf_c) token_stream_fill(ts);
     assert(ts->buf_i < ts->buf_c);
 
+    struct token t;
     if(ts->buf[ts->buf_i].type == TOKEN_EOF)
-        return ts->buf[ts->buf_i];
+         t = ts->buf[ts->buf_i];
+    else t = ts->buf[ts->buf_i++];
 
-    return ts->buf[ts->buf_i++];
+    return t;
 }
 
 //Save this location in the token stream as a rewind point.
@@ -477,19 +501,25 @@ struct token token_stream_next(struct token_stream *ts) {
 //which is unwound one step by each call to *_rewind().
 void token_stream_mark(struct token_stream *ts) {
     assert(ts);
-    //TODO: implement
+    assert(ts->mark_n < TOKEN_MARK_MAX);
+
+    if(ts->buf_c <= 0) token_stream_fill(ts);
+    assert(ts->buf_c > 0);
+
+    ts->mark[ts->mark_n++] = ts->buf_i;
 }
 
 //Rewinds the stream back to the last call of token_stream_mark()
-//Does not clear mark,
 void token_stream_rewind(struct token_stream *ts) {
     assert(ts);
-    //TODO: implement
+    assert(ts->mark_n > 0);
+    ts->buf_i = ts->mark[--ts->mark_n];
 }
 
 //Remove most recent mark without changing the stream status. Marks should be removed
 //this way when they are no longer needed
 void token_stream_unmark(struct token_stream *ts) {
     assert(ts);
-    //TODO: implement
+    assert(ts->mark_n > 0);
+    ts->mark_n--;
 }

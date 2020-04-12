@@ -1,6 +1,7 @@
+CFLAGS=-g
+
 test: zen2cc/zen2cc
-	./zen2cc/zen2cc -t tests/ops.zen
-	#./zen2cc/zen2cc -p tests/syntax.zen
+	./zen2cc/zen2cc -p tests/syntax.zen
 
 test_token: zen2cc/zen2cc
 	@for f in tests/*.zen; do \
@@ -22,7 +23,7 @@ test_token_update:
 	done
 
 zen2cc/zen2cc: zen2cc/*.c zen2cc/*.h
-	$(CC) -o zen2cc/zen2cc zen2cc/*.c
+	$(CC) $(CFLAGS) -o zen2cc/zen2cc zen2cc/*.c
 
 clean:
 	rm -f zen2cc/zen2cc tests/*.temp
