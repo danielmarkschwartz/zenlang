@@ -248,19 +248,27 @@ The compiler is free to choose an approprate integer type (eg `int32`, `int16`,
 etc) for runtime storage based on the range of specified values, but the size
 can be queried at compile time using `weekday->size`.
 
-Structs are used declare compound types. They take the form of a list of
-identefiers with optional type expressions, seperated by commas or newlines.
-Members without an explicit type type the type of the following member. The last
-member of a struct must have an explicit type:
+Structs are used declare compound types. They take the form of a semicolon
+seperated list of identefiers one or more identifiers, seperated by commas,
+followed by a type expression. The final semicolon in a struct is optional.
 
 ```
-struct point {x,y,z float32};
+struct point {x,y,z float32}
 struct buffer {
-    data byte
-    capacity    //takes int type of following member
-    i           //takes int type of following member 
-    len int
+    data uint8;
+    capacity,   //takes int type of following member
+    i,          //takes int type of following member 
+    len int;
 };
+```
+
+Enums and structs can also be specified anonymously as type expressions.
+Therefore, the following statements are the same.
+
+```
+struct mystruct {x,y int}
+
+typedef mystruct struct {x,y int}
 ```
 
 ### Functions and methods
