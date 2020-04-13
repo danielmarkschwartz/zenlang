@@ -3,6 +3,18 @@
 
 #include "token.h"
 
+enum expr_type {
+    EXPR_NONE,                  //Empty expression
+    EXPR_NUM,                   //A numeric constant
+};
+
+struct expr {
+    enum expr_type type;
+    union {
+        struct token num;
+    };
+};
+
 enum type_type {
     TYPE_NONE = -2,
     TYPE_ERR = -1,
@@ -13,6 +25,7 @@ enum type_type {
     TYPE_ARRAY,             //Array of ...
     TYPE_FUNC,              //Function with args ... returning ....
     TYPE_STRUCT,            //Struct of ...
+    TYPE_ENUM,              //Struct of ...
 };
 
 enum type_primative {
@@ -54,6 +67,12 @@ struct type {
             char **idents;
             struct type **types;
             int mem_n;
+        };
+        struct {                            //TYPE_ENUM
+            char **opts;
+            struct expr *vals;
+            struct type *enum_type;
+            int opts_n;
         };
     };
 };
@@ -111,6 +130,7 @@ struct parse{
     error_func error;
 
     struct type type;
+    struct expr expr;
 };
 
 void parse_init(struct parse *p, struct token_stream *ts, error_func err);

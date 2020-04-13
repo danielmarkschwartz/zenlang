@@ -25,3 +25,8 @@ typedef struct2 struct {
     data uint8;
     capacity, i, len int;
 }
+
+enum enum0 {MON, TUE, WED, THUR, FRI, SAT, SUN}
+enum enum1 {MON=1, TUE, WED, THUR, FRI, SAT, SUN=0}
+enum enum2 {MON, TUE, WED, THUR, FRI, SAT, SUN mytype1}
+typedef enum3 enum {MON, TUE, WED, THUR, FRI, SAT, SUN}

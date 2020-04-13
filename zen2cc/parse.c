@@ -43,6 +43,14 @@ void type_free(struct type *t, int level) {
         for(int i = 0; i < t->mem_n; i++) {
             type_free(t->types[i],level+1); free(t->idents[i]);
         }
+        free(t->types); free(t->idents);
+        break;
+    case TYPE_ENUM:
+        for(int i = 0; i < t->opts_n; i++) {
+             free(t->opts[i]);
+        }
+        free(t->vals);
+        free(t->opts);
         break;
     default: assert(0);
     }
@@ -90,6 +98,19 @@ loop:
             for(int i = 0; i < t->mem_n; i++) {
                 printf("\t%s ", t->idents[i]);
                 type_print(t->types[i]);
+                printf("\n");
+            }
+            printf("}");
+            break;
+        case TYPE_ENUM:
+            printf("ENUM {\n");
+            for(int i = 0; i < t->opts_n; i++) {
+                if(t->vals[i].type == EXPR_NONE) printf("\t%s\n", t->opts[i]);
+                else printf("\t%s = %.*s\n", t->opts[i], t->vals[i].num.len, t->vals[i].num.str);
+            }
+            if(t->enum_type && t->enum_type->type != TYPE_NONE) {
+                printf("\tTYPE: ");
+                type_print(t->enum_type);
                 printf("\n");
             }
             printf("}");
@@ -256,7 +277,24 @@ static char err_buf[ERRBUF_SIZE];
     return err_buf;\
 }while(0)
 
+static char *parse_expr(struct parse *p) {
+    assert(p);
+    token_stream_mark(p->ts);
+
+    struct token t;
+    while(t = token_stream_next(p->ts), t.type == TOKEN_NEWLINE);
+    switch(t.type) {
+    case TOKEN_NUM: p->expr.type = EXPR_NUM; p->expr.num = t; return NULL;
+    //TODO: implement expression parsing
+    default: assert(0); //NOT IMPLEMENTED
+    }
+
+    token_stream_unmark(p->ts);
+    return NULL;
+}
+
 static char *parse_include(struct parse *p) {
+    assert(p);
     struct token t;
     token_stream_mark(p->ts);
 
@@ -335,6 +373,69 @@ ident:  assert(mem_n < BUF_MAX);
     p->type.mem_n = mem_n;
 
     return NULL;
+}
+
+//Parse struct definition in curly braces '{...}'
+//Fills p->type with parsed members and TYPE_ENUM
+static char *parse_enum_members(struct parse *p) {
+    struct token t;
+    char *err;
+
+    //TODO: EXPECT should follow error handling routine rather than dump memory?
+
+    token_stream_mark(p->ts);
+    p->type.type = TYPE_ERR;
+
+    char **opts = malloc(sizeof *opts * BUF_MAX);
+    struct expr *vals = malloc(sizeof *vals * BUF_MAX);
+    assert(opts); assert(vals);
+    int opts_n = 0;
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_LCURL);
+    ignore_nl = true;
+
+    MAYBE(TOKEN_RCURL); else {
+        for(;;) {
+            assert(opts_n < BUF_MAX);
+            EXPECT(TOKEN_IDENT);
+            opts[opts_n] = token_str(t);
+
+            MAYBE(TOKEN_ASSIGN) {
+                err = parse_expr(p);
+                if(err) goto err;
+                vals[opts_n++] = p->expr;
+            } else {
+                vals[opts_n++].type = EXPR_NONE;
+            }
+
+            MAYBE(TOKEN_COMMA); else break;
+        }
+
+        MAYBE(TOKEN_RCURL)
+            p->type.enum_type = NULL;
+        else {
+            err = parse_type_expr(p);
+            if(err) goto err;
+            p->type.enum_type = type_alloc(p->type);
+            EXPECT(TOKEN_RCURL);
+        }
+    }
+
+    token_stream_unmark(p->ts);
+
+    p->type.type = TYPE_ENUM;
+    p->type.opts = opts;
+    p->type.vals = vals;
+    p->type.opts_n = opts_n;
+
+    return NULL;
+
+err:
+    token_stream_rewind(p->ts);
+    free(opts); free(vals);
+    p->type.type = TYPE_ERR;
+    return err;
 }
 
 static char *parse_type_expr(struct parse *p) {
@@ -450,6 +551,17 @@ static char *parse_type_expr(struct parse *p) {
             break;
         }
 
+        //Parse anonymous enum
+        //'enum { ... }'
+        case TOKEN_ENUM: {
+            char *err = parse_enum_members(p);
+            if(err) {
+                token_stream_rewind(p->ts);
+                return err;
+            }
+            break;
+        }
+
         default:
             ERRF("Unexpected token %s while parsing type", token_type_str[t.type]);
     }
@@ -511,6 +623,32 @@ static char *parse_struct(struct parse *p) {
     return NULL;
 }
 
+static char *parse_enum(struct parse *p) {
+    struct token t;
+    token_stream_mark(p->ts);
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_ENUM);
+    EXPECT(TOKEN_IDENT);
+
+    char *ident = token_str(t);
+    assert(ident);
+
+    char *err = parse_enum_members(p);
+    if(err) {
+        token_stream_rewind(p->ts);
+        return err;
+    }
+
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
+    ts_set(&p->types, ident, p->type);
+    p->type.type = TYPE_NONE;
+
+    return NULL;
+}
+
 //Parse entire stream, calling error for every error encountered.
 //Returns number of errors
 int parse(struct parse *p) {
@@ -526,6 +664,7 @@ int parse(struct parse *p) {
         char *err = parse_include(p);
         if(err) err = parse_typedef(p);
         if(err) err = parse_struct(p);
+        if(err) err = parse_enum(p);
 
         //TODO: parse other top level constructs
 
