@@ -213,40 +213,39 @@ typedef utc_time int32;
 typedef local_time int32;
 ```
 
-Enums are use to declare constants which are automatically namespaced and can be
-stored in run time:
+Enums are use to declare constants which are automatically namespaced and have
+their own runtime representation.
 
 ```
 enum weekday {MON, TUE, WED, THUR, FRI, SAT, SUN};
 // Access as weekday->MON, etc
-
-//Alternate form
-enum weekday {
-    SUN = 6
-    MON = 0
-    TUE
-    WED, THUR
-    FRI
-    SAT
-}
 ```
 
-Enums comma (or newline) seperated list of identifiers, optionally with
-assignment expressions that evaluate in compile time to integer constants.
-Identifiers without expressions reevaluate the previously given  expression. If
-this produces the same value, then that value + 1 is used. If the first value
-has no expression, it is assigned to 0.
+Enums consist of comma seperated list of identifiers, optionally with assignment
+expressions that evaluate in compile time to integer constants. If the first
+value has no expression, it is assigned to 0. Members without expressions
+are automatically defined as the previous value plus one. So, MON == 0, TUE ==
+1, etc.
 
 During enum expression evaluation, the identifier `iota` is defined as 0 and is
-incremented once after each enum element:
+incremented once after each enum element. Elements without assignments after an
+iota containing expression act as if they are assigned to the same expression,
+reevaluated for each element:
 
 ```
 enum bytesize { B = 1 << (10*itoa), KB, MB, GB, TB, PB };
 ```
 
-The compiler is free to choose an approprate integer type (eg `int32`, `int16`,
-etc) for runtime storage based on the range of specified values, but the size
-can be queried at compile time using `weekday->size`.
+The compiler is free to choose an approprate integer type (eg `uint32`,
+`uint16`, etc) for runtime storage of an enum based on the range of specified
+values. The the size can be queried at compile time using `weekday->size`.
+Optionally, the user can specify the type of the enum at the end of the
+declairation, but the type specified must be corherceable to an integer type.
+
+```
+typedef dayofweek uint8;
+enum weekday {MON, TUE, WED, THUR, FRI, SAT, SUN dayofweek};
+```
 
 Structs are used declare compound types. They take the form of a semicolon
 seperated list of identefiers one or more identifiers, seperated by commas,
