@@ -39,6 +39,11 @@ void type_free(struct type *t, int level) {
         for(int i = 0; i < t->args_n; i++) type_free(t->args[i], level+1);
         for(int i = 0; i < t->ret_n; i++) type_free(t->ret[i], level+1);
         break;
+    case TYPE_STRUCT:
+        for(int i = 0; i < t->mem_n; i++) {
+            type_free(t->types[i],level+1); free(t->idents[i]);
+        }
+        break;
     default: assert(0);
     }
 }
@@ -79,6 +84,15 @@ loop:
 
             if(t->ret_n > 1) printf(")");
 
+            break;
+        case TYPE_STRUCT:
+            printf("STRUCT {\n");
+            for(int i = 0; i < t->mem_n; i++) {
+                printf("\t%s ", t->idents[i]);
+                type_print(t->types[i]);
+                printf("\n");
+            }
+            printf("}");
             break;
         case TYPE_ERR: case TYPE_NONE:
         default: assert(0);
@@ -222,6 +236,7 @@ void parse_free(struct parse *p) {
 static char err_buf[ERRBUF_SIZE];
 
 #define EXPECT(ttype) do{\
+    if(ignore_nl) while(token_stream_peek(p->ts).type == TOKEN_NEWLINE) token_stream_next(p->ts);\
     t = token_stream_next(p->ts);\
     if(t.type != ttype && !(ttype == TOKEN_NEWLINE && t.type == TOKEN_EOF)){\
         token_stream_rewind(p->ts);\
@@ -231,6 +246,7 @@ static char err_buf[ERRBUF_SIZE];
 }while(0)
 
 #define MAYBE(ttype)\
+    if(ignore_nl) while(token_stream_peek(p->ts).type == TOKEN_NEWLINE) token_stream_next(p->ts);\
     t = token_stream_peek(p->ts);\
     if(t.type == ttype) token_stream_next(p->ts);\
     if(t.type == ttype)\
@@ -244,6 +260,7 @@ static char *parse_include(struct parse *p) {
     struct token t;
     token_stream_mark(p->ts);
 
+    bool ignore_nl = false;
     EXPECT(TOKEN_INCLUDE);
     EXPECT(TOKEN_STR_ESC);
 
@@ -268,12 +285,63 @@ static char *parse_include(struct parse *p) {
     return NULL;
 }
 
+static char *parse_type_expr(struct parse *p);
+
 #define BUF_MAX 10
+
+//Parse struct definition in curly braces '{...}'
+//Fills p->type with parsed members and TYPE_STRUCT
+static char *parse_struct_members(struct parse *p) {
+    struct token t;
+
+    token_stream_mark(p->ts);
+    p->type.type = TYPE_ERR;
+
+    char **idents = malloc(sizeof *idents * BUF_MAX);
+    struct type **types = malloc(sizeof *types * BUF_MAX);
+    assert(idents); assert(types);
+    int mem_n = 0;
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_LCURL);
+    ignore_nl = true;
+
+    for(;;){
+        MAYBE(TOKEN_RCURL) break;
+
+ident:  assert(mem_n < BUF_MAX);
+        EXPECT(TOKEN_IDENT);
+        idents[mem_n] = token_str(t);
+        types[mem_n++] = type_alloc((struct type){TYPE_NONE});
+
+        MAYBE(TOKEN_COMMA) goto ident;
+
+        char *err = parse_type_expr(p);
+        if(err) {
+            token_stream_rewind(p->ts);
+            return err;
+        }
+        for(int i = mem_n-1; i>=0 && types[i]->type == TYPE_NONE; i--)
+            *types[i] = p->type;
+
+        MAYBE(TOKEN_RCURL) break;
+        EXPECT(TOKEN_SEMICOLON);
+    }
+
+    token_stream_unmark(p->ts);
+    p->type.type = TYPE_STRUCT;
+    p->type.idents = idents;
+    p->type.types = types;
+    p->type.mem_n = mem_n;
+
+    return NULL;
+}
 
 static char *parse_type_expr(struct parse *p) {
     token_stream_mark(p->ts);
     struct token t = token_stream_next(p->ts);
 
+    bool ignore_nl = false;
     p->type.type = TYPE_ERR;
 
     switch(t.type) {
@@ -371,6 +439,17 @@ static char *parse_type_expr(struct parse *p) {
             break;
         }
 
+        //Parse anonymous struct
+        //'struct { ... }'
+        case TOKEN_STRUCT: {
+            char *err = parse_struct_members(p);
+            if(err) {
+                token_stream_rewind(p->ts);
+                return err;
+            }
+            break;
+        }
+
         default:
             ERRF("Unexpected token %s while parsing type", token_type_str[t.type]);
     }
@@ -384,6 +463,7 @@ static char *parse_typedef(struct parse *p) {
     struct token t;
     token_stream_mark(p->ts);
 
+    bool ignore_nl = false;
     EXPECT(TOKEN_TYPEDEF);
     EXPECT(TOKEN_IDENT);
 
@@ -391,6 +471,32 @@ static char *parse_typedef(struct parse *p) {
     assert(ident);
 
     char *err = parse_type_expr(p);
+    if(err) {
+        token_stream_rewind(p->ts);
+        return err;
+    }
+
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
+    ts_set(&p->types, ident, p->type);
+    p->type.type = TYPE_NONE;
+
+    return NULL;
+}
+
+static char *parse_struct(struct parse *p) {
+    struct token t;
+    token_stream_mark(p->ts);
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_STRUCT);
+    EXPECT(TOKEN_IDENT);
+
+    char *ident = token_str(t);
+    assert(ident);
+
+    char *err = parse_struct_members(p);
     if(err) {
         token_stream_rewind(p->ts);
         return err;
@@ -419,6 +525,7 @@ int parse(struct parse *p) {
 
         char *err = parse_include(p);
         if(err) err = parse_typedef(p);
+        if(err) err = parse_struct(p);
 
         //TODO: parse other top level constructs
 

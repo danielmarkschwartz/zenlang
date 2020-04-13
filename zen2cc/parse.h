@@ -9,9 +9,10 @@ enum type_type {
 
     TYPE_PRIMATIVE = 0,     //Any explicit non-compound type (int, float, etc)
     TYPE_IDENT,             //An identifier in type namespace (mytype or module->mytype)
-    TYPE_PTR,               //Pointer to
-    TYPE_ARRAY,             //Array of
-    TYPE_FUNC,              //Function
+    TYPE_PTR,               //Pointer to ...
+    TYPE_ARRAY,             //Array of ...
+    TYPE_FUNC,              //Function with args ... returning ....
+    TYPE_STRUCT,            //Struct of ...
 };
 
 enum type_primative {
@@ -48,6 +49,11 @@ struct type {
         struct {                            //TYPE_FUNC
             struct type **args, **ret;
             int args_n, ret_n;
+        };
+        struct {                            //TYPE_STRUCT
+            char **idents;
+            struct type **types;
+            int mem_n;
         };
     };
 };

@@ -11,3 +11,17 @@ typedef mytype6 func (void) void
 typedef mytype7 func (int, float, []*uint64) int
 typedef mytype8 func (void) (*[]int, **float)
 typedef mytype9 func (void) []*void
+
+struct struct0 {x,y,z float32}
+
+struct struct1 {
+    data uint8;
+    capacity,   //takes int type of following member
+    i,          //takes int type of following member 
+    len int;
+}
+
+typedef struct2 struct {
+    data uint8;
+    capacity, i, len int;
+}
