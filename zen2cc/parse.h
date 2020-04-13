@@ -60,12 +60,12 @@ struct type {
         struct {char *mod, *ident;};        //TYPE_IDENT
         struct {struct type *of; int n;};   //TYPE_PTR, TYPE_ARRAY
         struct {                            //TYPE_FUNC
-            struct type **args, **ret;
+            struct type *args, *ret;
             int args_n, ret_n;
         };
         struct {                            //TYPE_STRUCT
             char **idents;
-            struct type **types;
+            struct type *types;
             int mem_n;
         };
         struct {                            //TYPE_ENUM

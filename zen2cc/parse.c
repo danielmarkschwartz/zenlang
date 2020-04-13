@@ -12,12 +12,23 @@ char *type_primative_str[TYPE_NUM] = {
     "float", "float16", "float32", "float64",
 };
 
+void expr_free(struct expr *e) {
+    assert(e);
+    switch(e->type) {
+    case EXPR_NONE: break;
+    case EXPR_NUM: break;
+    }
+}
+
 void ts_init(struct ts *ts) {
     assert(ts);
     ts->key = malloc(TS_INITIAL_CAP * sizeof *ts->key);
     ts->val = malloc(TS_INITIAL_CAP * sizeof *ts->val);
     ts->c = TS_INITIAL_CAP;
     ts->n = 0;
+
+    assert(ts->key);
+    assert(ts->val);
 }
 
 struct type *type_alloc(struct type t) {
@@ -27,31 +38,41 @@ struct type *type_alloc(struct type t) {
     return ret;
 }
 
-void type_free(struct type *t, int level) {
+void type_free(struct type *t) {
+    if(t == NULL) return;
+
     switch(t->type) {
     case TYPE_PRIMATIVE: break;
     case TYPE_IDENT: free(t->ident); free(t->mod); break;
-    case TYPE_PTR: case TYPE_ARRAY:
-        type_free(t->of, level+1);
-        if(level) free(t);
-        break;
+    case TYPE_PTR: case TYPE_ARRAY: type_free(t->of); free(t->of); break;
+
     case TYPE_FUNC:
-        for(int i = 0; i < t->args_n; i++) type_free(t->args[i], level+1);
-        for(int i = 0; i < t->ret_n; i++) type_free(t->ret[i], level+1);
+        for(int i = 0; i < t->args_n; i++) type_free(&t->args[i]);
+        for(int i = 0; i < t->ret_n; i++) type_free(&t->ret[i]);
+        free(t->args);
+        free(t->ret);
         break;
+
     case TYPE_STRUCT:
         for(int i = 0; i < t->mem_n; i++) {
-            type_free(t->types[i],level+1); free(t->idents[i]);
+             free(t->idents[i]);
+             type_free(&t->types[i]);
         }
         free(t->types); free(t->idents);
         break;
+
     case TYPE_ENUM:
         for(int i = 0; i < t->opts_n; i++) {
              free(t->opts[i]);
+             expr_free(&t->vals[i]);
         }
         free(t->vals);
         free(t->opts);
+        type_free(t->enum_type);
+        free(t->enum_type);
         break;
+
+    case TYPE_NONE: case TYPE_ERR: break;
     default: assert(0);
     }
 }
@@ -79,7 +100,7 @@ loop:
             printf("FUNC (");
             for(int i = 0; i<t->args_n; i++){
                 if(i>0) printf(", ");
-                type_print(t->args[i]);
+                type_print(&t->args[i]);
             }
 
             if(t->ret_n > 1) printf(") (");
@@ -87,7 +108,7 @@ loop:
 
             for(int i = 0; i<t->ret_n; i++){
                 if(i>0) printf(", ");
-                type_print(t->ret[i]);
+                type_print(&t->ret[i]);
             }
 
             if(t->ret_n > 1) printf(")");
@@ -97,7 +118,7 @@ loop:
             printf("STRUCT {\n");
             for(int i = 0; i < t->mem_n; i++) {
                 printf("\t%s ", t->idents[i]);
-                type_print(t->types[i]);
+                type_print(&t->types[i]);
                 printf("\n");
             }
             printf("}");
@@ -124,7 +145,7 @@ void ts_free(struct ts *ts) {
     if(ts == NULL) return;
     for(int i = 0; i < ts->n; i++) {
         free(ts->key[i]);
-        type_free(&ts->val[i], 0);
+        type_free(&ts->val[i]);
     }
     free(ts->key);
     free(ts->val);
@@ -180,6 +201,8 @@ void ns_init(struct ns *ns) {
     ns->val = malloc(NS_INITIAL_CAP * sizeof *ns->val);
     ns->c = NS_INITIAL_CAP;
     ns->n = 0;
+    assert(ns->key);
+    assert(ns->val);
 }
 
 void ns_free(struct ns *ns) {
@@ -335,9 +358,8 @@ static char *parse_struct_members(struct parse *p) {
     token_stream_mark(p->ts);
     p->type.type = TYPE_ERR;
 
-    char **idents = malloc(sizeof *idents * BUF_MAX);
-    struct type **types = malloc(sizeof *types * BUF_MAX);
-    assert(idents); assert(types);
+    char *idents[BUF_MAX];
+    struct type types[BUF_MAX];
     int mem_n = 0;
 
     bool ignore_nl = false;
@@ -350,7 +372,7 @@ static char *parse_struct_members(struct parse *p) {
 ident:  assert(mem_n < BUF_MAX);
         EXPECT(TOKEN_IDENT);
         idents[mem_n] = token_str(t);
-        types[mem_n++] = type_alloc((struct type){TYPE_NONE});
+        types[mem_n++] = (struct type){TYPE_NONE};
 
         MAYBE(TOKEN_COMMA) goto ident;
 
@@ -359,8 +381,8 @@ ident:  assert(mem_n < BUF_MAX);
             token_stream_rewind(p->ts);
             return err;
         }
-        for(int i = mem_n-1; i>=0 && types[i]->type == TYPE_NONE; i--)
-            *types[i] = p->type;
+        for(int i = mem_n-1; i>=0 && types[i].type == TYPE_NONE; i--)
+            types[i] = p->type;
 
         MAYBE(TOKEN_RCURL) break;
         EXPECT(TOKEN_SEMICOLON);
@@ -368,9 +390,19 @@ ident:  assert(mem_n < BUF_MAX);
 
     token_stream_unmark(p->ts);
     p->type.type = TYPE_STRUCT;
-    p->type.idents = idents;
-    p->type.types = types;
+    p->type.idents = NULL;
+    p->type.types = NULL;
     p->type.mem_n = mem_n;
+
+    if(mem_n > 0) {
+        p->type.idents = malloc(sizeof(*idents) * mem_n);
+        assert(p->type.idents);
+        memcpy(p->type.idents, idents, sizeof(*idents) * mem_n);
+
+        p->type.types = malloc(sizeof(*types) * mem_n);
+        assert(p->type.types);
+        memcpy(p->type.types, types, sizeof(*types) * mem_n);
+    }
 
     return NULL;
 }
@@ -386,9 +418,8 @@ static char *parse_enum_members(struct parse *p) {
     token_stream_mark(p->ts);
     p->type.type = TYPE_ERR;
 
-    char **opts = malloc(sizeof *opts * BUF_MAX);
-    struct expr *vals = malloc(sizeof *vals * BUF_MAX);
-    assert(opts); assert(vals);
+    char *opts[BUF_MAX];
+    struct expr vals[BUF_MAX];
     int opts_n = 0;
 
     bool ignore_nl = false;
@@ -425,9 +456,19 @@ static char *parse_enum_members(struct parse *p) {
     token_stream_unmark(p->ts);
 
     p->type.type = TYPE_ENUM;
-    p->type.opts = opts;
-    p->type.vals = vals;
+    p->type.opts = NULL;
+    p->type.vals = NULL;
     p->type.opts_n = opts_n;
+
+    if(opts_n > 0) {
+        p->type.opts = malloc(sizeof(*opts) * opts_n);
+        assert(p->type.opts);
+        memcpy(p->type.opts, opts, sizeof(*opts) * opts_n);
+
+        p->type.vals = malloc(sizeof(*vals) * opts_n);
+        assert(p->type.vals);
+        memcpy(p->type.vals, vals, sizeof(*vals) * opts_n);
+    }
 
     return NULL;
 
@@ -499,8 +540,7 @@ static char *parse_type_expr(struct parse *p) {
             EXPECT(TOKEN_LPAREN);
 
             //Parse args
-            struct type **args = malloc(sizeof *args * BUF_MAX);
-            assert(args);
+            struct type args[BUF_MAX];
             int args_n = 0;
 
             for(;;){
@@ -509,12 +549,11 @@ static char *parse_type_expr(struct parse *p) {
 
                 parse_type_expr(p);
                 assert(args_n < BUF_MAX);
-                args[args_n++] = type_alloc(p->type);
+                args[args_n++] = p->type;
             }
 
             //Parse returns
-            struct type **ret = malloc(sizeof *ret * BUF_MAX);
-            assert(ret);
+            struct type ret[BUF_MAX];
             int ret_n = 0;
 
             MAYBE(TOKEN_LPAREN) {
@@ -524,18 +563,30 @@ static char *parse_type_expr(struct parse *p) {
 
                     parse_type_expr(p);
                     assert(ret_n < BUF_MAX);
-                    ret[ret_n++] = type_alloc(p->type);
+                    ret[ret_n++] = p->type;
                 }
             } else {
                 parse_type_expr(p);
-                ret[ret_n++] = type_alloc(p->type);
+                ret[ret_n++] = p->type;
             }
 
-            p->type.args = args;
-            p->type.args_n = args_n;
-            p->type.ret = ret;
-            p->type.ret_n = ret_n;
             p->type.type = TYPE_FUNC;
+            p->type.args = NULL;
+            p->type.args_n = args_n;
+            p->type.ret = NULL;
+            p->type.ret_n = ret_n;
+
+            if(args_n > 0) {
+                p->type.args = malloc(sizeof(*args) * args_n);
+                assert(p->type.args);
+                memcpy(p->type.args, args, sizeof(*args) * args_n);
+            }
+
+            if(ret_n > 0) {
+                p->type.ret = malloc(sizeof(*ret) * ret_n);
+                assert(p->type.ret);
+                memcpy(p->type.ret, ret, sizeof(*ret) * ret_n);
+            }
 
             break;
         }
