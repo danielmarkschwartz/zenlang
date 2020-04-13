@@ -6,6 +6,7 @@
 #include "parse.h"
 
 char *type_primative_str[TYPE_NUM] = {
+    "void",
     "int", "int8", "int16", "int32", "int64",
     "uint", "uint8", "uint16", "uint32", "uint64",
     "float", "float16", "float32", "float64",
@@ -19,14 +20,76 @@ void ts_init(struct ts *ts) {
     ts->n = 0;
 }
 
+struct type *type_alloc(struct type t) {
+    struct type *ret = malloc(sizeof *ret);
+    assert(ret);
+    *ret = t;
+    return ret;
+}
+
+void type_free(struct type *t, int level) {
+    switch(t->type) {
+    case TYPE_PRIMATIVE: break;
+    case TYPE_IDENT: free(t->ident); free(t->mod); break;
+    case TYPE_PTR: case TYPE_ARRAY:
+        type_free(t->of, level+1);
+        if(level) free(t);
+        break;
+    case TYPE_FUNC:
+        for(int i = 0; i < t->args_n; i++) type_free(t->args[i], level+1);
+        for(int i = 0; i < t->ret_n; i++) type_free(t->ret[i], level+1);
+        break;
+    default: assert(0);
+    }
+}
+
+void type_print(struct type *t) {
+
+loop:
+    switch(t->type){
+        case TYPE_PRIMATIVE:
+            assert(t->primative >= 0 && t->primative < TYPE_NUM);
+            printf("PRIMITIVE %s", type_primative_str[t->primative]);
+            break;
+        case TYPE_IDENT:
+            if(t->mod)
+                printf("IDENT '%s'->'%s'", t->mod, t->ident);
+            else printf("IDENT '%s'", t->ident);
+            break;
+        case TYPE_PTR:
+            printf("PTR to "); t = t->of; goto loop;
+        case TYPE_ARRAY:
+            if(t->n >= 0) printf("ARRAY [%i] of ", t->n);
+            else printf("ARRAY of ");
+            t = t->of; goto loop;
+        case TYPE_FUNC:
+            printf("FUNC (");
+            for(int i = 0; i<t->args_n; i++){
+                if(i>0) printf(", ");
+                type_print(t->args[i]);
+            }
+
+            if(t->ret_n > 1) printf(") (");
+            else printf(") ");
+
+            for(int i = 0; i<t->ret_n; i++){
+                if(i>0) printf(", ");
+                type_print(t->ret[i]);
+            }
+
+            if(t->ret_n > 1) printf(")");
+
+            break;
+        case TYPE_ERR: case TYPE_NONE:
+        default: assert(0);
+    }
+}
+
 void ts_free(struct ts *ts) {
     if(ts == NULL) return;
     for(int i = 0; i < ts->n; i++) {
         free(ts->key[i]);
-        switch(ts->val[i].type) {
-        case TYPE_VOID: case TYPE_PRIMATIVE: break;
-        default: assert(0);
-        }
+        type_free(&ts->val[i], 0);
     }
     free(ts->key);
     free(ts->val);
@@ -160,9 +223,9 @@ static char err_buf[ERRBUF_SIZE];
 
 #define EXPECT(ttype) do{\
     t = token_stream_next(p->ts);\
-    if(t.type != ttype){\
+    if(t.type != ttype && !(ttype == TOKEN_NEWLINE && t.type == TOKEN_EOF)){\
         token_stream_rewind(p->ts);\
-        snprintf(err_buf, ERRBUF_SIZE, "Expected token %s", token_type_str[ttype]);\
+        snprintf(err_buf, ERRBUF_SIZE, "Expected token %s, got %s [%s,%i]", token_type_str[ttype], token_type_str[t.type], __FILE__, __LINE__);\
         return err_buf;\
     }\
 }while(0)
@@ -187,8 +250,6 @@ static char *parse_include(struct parse *p) {
     char *path = token_str(t);
     assert(path);
 
-    token_stream_unmark(p->ts);
-
     char *ident = NULL;
     MAYBE(TOKEN_IDENT){
         ident = token_str(t);
@@ -199,33 +260,122 @@ static char *parse_include(struct parse *p) {
         else ident = path;
     }
 
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
     ns_set(&p->globals, ident, (struct val){VAL_MODULE, .mod={path}});
 
     return NULL;
 }
 
+#define BUF_MAX 10
+
 static char *parse_type_expr(struct parse *p) {
-    struct token t;
     token_stream_mark(p->ts);
+    struct token t = token_stream_next(p->ts);
 
     p->type.type = TYPE_ERR;
 
-    //Parse primitive type
-    EXPECT(TOKEN_IDENT);
+    switch(t.type) {
 
-    enum type_primative pt;
-    for(pt = 0; pt < TYPE_NUM; pt++)
-        if( t.len == strlen(type_primative_str[pt])
-            && strncmp(type_primative_str[pt], t.str, t.len) == 0)
+        //Parse primitive or ident
+        case TOKEN_IDENT: {
+            enum type_primative pt;
+            for(pt = 0; pt < TYPE_NUM; pt++)
+                if( t.len == strlen(type_primative_str[pt])
+                        && strncmp(type_primative_str[pt], t.str, t.len) == 0)
+                    break;
+
+            if(pt != TYPE_NUM) {
+                p->type.type = TYPE_PRIMATIVE;
+                p->type.primative = pt;
+                break;
+            }
+
+            p->type.type = TYPE_IDENT;
+            p->type.ident = token_str(t);
+            p->type.mod = NULL;
+
+            MAYBE(TOKEN_RARR) {
+                EXPECT(TOKEN_IDENT);
+                p->type.mod = p->type.ident;
+                p->type.ident = token_str(t);
+            }
+
+            break;
+        }
+
+        case TOKEN_MUL:
+            parse_type_expr(p);
+            p->type.of = type_alloc(p->type);
+            p->type.type = TYPE_PTR;
             break;
 
-    if(pt == TYPE_NUM)
-        ERRF("Expected primitive type, but got %.*s", t.len, t.str);
+        case TOKEN_LBRA:
+            p->type.n = -1;
+            MAYBE(TOKEN_NUM) {
+                char *s = token_str(t);
+                p->type.n = atoi(s);
+                free(s);
+            }
+            EXPECT(TOKEN_RBRA);
 
-    p->type.type = TYPE_PRIMATIVE;
-    p->type.primative = pt;
+            parse_type_expr(p);
+            p->type.of = type_alloc(p->type);
+            p->type.type = TYPE_ARRAY;
 
-    //TODO: implement other parse expr nodes
+            break;
+
+        case TOKEN_FUNC: {
+            EXPECT(TOKEN_LPAREN);
+
+            //Parse args
+            struct type **args = malloc(sizeof *args * BUF_MAX);
+            assert(args);
+            int args_n = 0;
+
+            for(;;){
+                MAYBE(TOKEN_RPAREN) break;
+                if(args_n > 0) EXPECT(TOKEN_COMMA);
+
+                parse_type_expr(p);
+                assert(args_n < BUF_MAX);
+                args[args_n++] = type_alloc(p->type);
+            }
+
+            //Parse returns
+            struct type **ret = malloc(sizeof *ret * BUF_MAX);
+            assert(ret);
+            int ret_n = 0;
+
+            MAYBE(TOKEN_LPAREN) {
+                for(;;){
+                    MAYBE(TOKEN_RPAREN) break;
+                    if(ret_n > 0) EXPECT(TOKEN_COMMA);
+
+                    parse_type_expr(p);
+                    assert(ret_n < BUF_MAX);
+                    ret[ret_n++] = type_alloc(p->type);
+                }
+            } else {
+                parse_type_expr(p);
+                ret[ret_n++] = type_alloc(p->type);
+            }
+
+            p->type.args = args;
+            p->type.args_n = args_n;
+            p->type.ret = ret;
+            p->type.ret_n = ret_n;
+            p->type.type = TYPE_FUNC;
+
+            break;
+        }
+
+        default:
+            ERRF("Unexpected token %s while parsing type", token_type_str[t.type]);
+    }
+
+    token_stream_unmark(p->ts);
 
     return NULL;
 }
@@ -246,6 +396,7 @@ static char *parse_typedef(struct parse *p) {
         return err;
     }
 
+    EXPECT(TOKEN_NEWLINE);
     token_stream_unmark(p->ts);
 
     ts_set(&p->types, ident, p->type);

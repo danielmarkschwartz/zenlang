@@ -104,7 +104,7 @@ extern char *token_type_str[TOKEN_MAX];
 struct token token_next(char **s, char *end);
 
 #define TOKEN_BUF_SIZE (1024)
-#define TOKEN_MARK_MAX 4
+#define TOKEN_MARK_MAX 10
 
 struct token_stream {
     char *text;         //mmap'd text buffer

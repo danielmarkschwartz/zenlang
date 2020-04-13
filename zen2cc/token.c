@@ -403,8 +403,7 @@ void token_print(struct token_stream *ts, struct token t) {
         printf("%s [%i col %i]", s, line, col);
 
     if(t.type >= TOKEN_NE)
-        printf(" %s\n", punct[t.type - TOKEN_NE]);
-    else printf("\n");
+        printf(" %s", punct[t.type - TOKEN_NE]);
 }
 
 bool token_stream_init(struct token_stream *ts, char *path) {

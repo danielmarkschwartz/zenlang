@@ -68,15 +68,8 @@ int main(int argc, char **argv) {
         struct ts ts = p.types;
         for(int i = 0; i < ts.n; i++) {
             printf("%s: ", ts.key[i]);
-            switch(ts.val[i].type){
-            case TYPE_VOID: printf("VOID\n"); break;
-            case TYPE_PRIMATIVE:
-                assert(ts.val[i].primative >= 0 && ts.val[i].primative < TYPE_NUM);
-                printf("PRIMITIVE %s\n", type_primative_str[ts.val[i].primative]);
-                break;
-            case TYPE_ERR: case TYPE_NONE:
-            default: assert(0);
-            }
+            type_print(&ts.val[i]);
+            printf("\n");
         }
     }
 
