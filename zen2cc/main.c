@@ -67,6 +67,17 @@ int main(int argc, char **argv) {
                      type_print(&ns.val[i].expr_type);
                  }
                  printf("\n"); break;
+            case VAL_VAR:
+                 printf("VAR");
+                 if(ns.val[i].expr.type != EXPR_NONE){
+                     printf(" ");
+                     expr_print(&ns.val[i].expr);
+                 }
+                 if(ns.val[i].expr_type.type != TYPE_NONE) {
+                     printf(" as ");
+                     type_print(&ns.val[i].expr_type);
+                 }
+                 printf("\n"); break;
             default: assert(0);
             }
         }

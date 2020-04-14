@@ -1,0 +1,3 @@
+let var0 uint32
+let var1 = 1234
+let var2 uint16 = 12.34

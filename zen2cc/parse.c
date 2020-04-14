@@ -126,6 +126,41 @@ static char *parse_const(struct parse *p) {
     return NULL;
 }
 
+static char *parse_let(struct parse *p) {
+    assert(p);
+
+    char *err = NULL;
+    struct token t;
+    token_stream_mark(p->ts);
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_LET);
+    EXPECT(TOKEN_IDENT);
+
+    char *ident = token_str(t);
+    assert(ident);
+
+    struct type type;
+    if(parse_type_expr(p)){
+        type = (struct type){TYPE_NONE};
+        EXPECT(TOKEN_ASSIGN);
+    } else {
+        type = p->type;
+        MAYBE(TOKEN_ASSIGN); else goto ret;
+    }
+
+    MUST(parse_expr);
+
+ret:
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
+    ns_set(&p->globals, ident,
+            (struct val){VAL_VAR, .expr=p->expr, .expr_type=type});
+
+    return NULL;
+}
+
 #define BUF_MAX 10
 
 //Parse struct definition in curly braces '{...}'
@@ -462,6 +497,7 @@ int parse(struct parse *p) {
         if(err) err = parse_struct(p);
         if(err) err = parse_enum(p);
         if(err) err = parse_const(p);
+        if(err) err = parse_let(p);
 
         //TODO: parse other top level constructs
 
