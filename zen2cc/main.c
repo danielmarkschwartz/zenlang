@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 
         do {
             t = token_stream_next(&ts);
-            token_print(&ts, t);
+            token_print(&ts, t); printf("\n");
         } while(t.type != TOKEN_ERR && t.type != TOKEN_EOF);
 
         return 0;
