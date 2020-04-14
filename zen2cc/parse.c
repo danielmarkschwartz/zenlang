@@ -44,6 +44,8 @@ static char err_buf[ERRBUF_SIZE];
     return err_buf;\
 }while(0)
 
+#define MUST(func) do{if((err = func(p))){token_stream_rewind(p->ts); return err;}}while(0)
+
 static char *parse_expr(struct parse *p) {
     assert(p);
     token_stream_mark(p->ts);
@@ -97,6 +99,7 @@ static char *parse_type_expr(struct parse *p);
 //Parse struct definition in curly braces '{...}'
 //Fills p->type with parsed members and TYPE_STRUCT
 static char *parse_struct_members(struct parse *p) {
+    char *err;
     struct token t;
 
     token_stream_mark(p->ts);
@@ -120,11 +123,8 @@ ident:  assert(mem_n < BUF_MAX);
 
         MAYBE(TOKEN_COMMA) goto ident;
 
-        char *err = parse_type_expr(p);
-        if(err) {
-            token_stream_rewind(p->ts);
-            return err;
-        }
+        MUST(parse_type_expr);
+
         for(int i = mem_n-1; i>=0 && types[i].type == TYPE_NONE; i--)
             types[i] = p->type;
 
@@ -157,8 +157,6 @@ static char *parse_enum_members(struct parse *p) {
     struct token t;
     char *err;
 
-    //TODO: EXPECT should follow error handling routine rather than dump memory?
-
     token_stream_mark(p->ts);
     p->type.type = TYPE_ERR;
 
@@ -177,8 +175,7 @@ static char *parse_enum_members(struct parse *p) {
             opts[opts_n] = token_str(t);
 
             MAYBE(TOKEN_ASSIGN) {
-                err = parse_expr(p);
-                if(err) goto err;
+                MUST(parse_expr);
                 vals[opts_n++] = p->expr;
             } else {
                 vals[opts_n++].type = EXPR_NONE;
@@ -190,8 +187,7 @@ static char *parse_enum_members(struct parse *p) {
         MAYBE(TOKEN_RCURL)
             p->type.enum_type = NULL;
         else {
-            err = parse_type_expr(p);
-            if(err) goto err;
+            MUST(parse_type_expr);
             p->type.enum_type = type_alloc(p->type);
             EXPECT(TOKEN_RCURL);
         }
@@ -215,15 +211,11 @@ static char *parse_enum_members(struct parse *p) {
     }
 
     return NULL;
-
-err:
-    token_stream_rewind(p->ts);
-    free(opts); free(vals);
-    p->type.type = TYPE_ERR;
-    return err;
 }
 
 static char *parse_type_expr(struct parse *p) {
+    char *err = NULL;
+
     token_stream_mark(p->ts);
     struct token t = token_stream_next(p->ts);
 
@@ -337,25 +329,11 @@ static char *parse_type_expr(struct parse *p) {
 
         //Parse anonymous struct
         //'struct { ... }'
-        case TOKEN_STRUCT: {
-            char *err = parse_struct_members(p);
-            if(err) {
-                token_stream_rewind(p->ts);
-                return err;
-            }
-            break;
-        }
+        case TOKEN_STRUCT: MUST(parse_struct_members); break;
 
         //Parse anonymous enum
         //'enum { ... }'
-        case TOKEN_ENUM: {
-            char *err = parse_enum_members(p);
-            if(err) {
-                token_stream_rewind(p->ts);
-                return err;
-            }
-            break;
-        }
+        case TOKEN_ENUM: MUST(parse_enum_members); break;
 
         default:
             ERRF("Unexpected token %s while parsing type", token_type_str[t.type]);
@@ -377,11 +355,8 @@ static char *parse_typedef(struct parse *p) {
     char *ident = token_str(t);
     assert(ident);
 
-    char *err = parse_type_expr(p);
-    if(err) {
-        token_stream_rewind(p->ts);
-        return err;
-    }
+    char *err = NULL;
+    MUST(parse_type_expr);
 
     EXPECT(TOKEN_NEWLINE);
     token_stream_unmark(p->ts);
@@ -403,11 +378,8 @@ static char *parse_struct(struct parse *p) {
     char *ident = token_str(t);
     assert(ident);
 
-    char *err = parse_struct_members(p);
-    if(err) {
-        token_stream_rewind(p->ts);
-        return err;
-    }
+    char *err = NULL;
+    MUST(parse_struct_members);
 
     EXPECT(TOKEN_NEWLINE);
     token_stream_unmark(p->ts);
@@ -429,11 +401,8 @@ static char *parse_enum(struct parse *p) {
     char *ident = token_str(t);
     assert(ident);
 
-    char *err = parse_enum_members(p);
-    if(err) {
-        token_stream_rewind(p->ts);
-        return err;
-    }
+    char *err = NULL;
+    MUST(parse_enum_members);
 
     EXPECT(TOKEN_NEWLINE);
     token_stream_unmark(p->ts);
