@@ -177,20 +177,31 @@ Const and let define globally accessible data. Both have a similar form
 
 ```
 const ident = expr;
+const ident type = expr;
+
+let ident type;
 let ident = expr;
-let ident;
+let ident type = expr;
 ```
 
-Let allocates and initializes static memory. This memory is mutable.
+Let allocates and initializes static memory. This memory is mutable.  Let
+statements without assignments are zero valued. Variables with assignment can
+optionally infer their type from their initializer by omitting a type expression
+after the identifier.
 
 Const creates a compile time constant which acts much like a read only variable,
 but no memory is allocated. Thus constants have no memory address and there are
 no pointers to constants.
 
-Numeric constants are treated as if text level subtition had taken place when
-used, so they are guarenteed to provide maximum possible precision when used in
-different numeric contexts. This is mostly useful for decimal representations
-being converted to different floating point representations.
+Numeric constants with no type specifier are treated as if text level
+substitution had taken place when used, so they are guaranteed to provide
+maximum possible precision when used in different numeric contexts. This is
+mostly useful for decimal representations being converted to different floating
+point representations.
+
+Non-numeric constants without specified types obey more relaxed type matching
+rules, where a constant can be coerced to any other type with the same
+underlying primitive representation.
 
 ### Typedef, Struct, and Enum
 
@@ -301,7 +312,7 @@ Type expressions are used to express the type of an object in casts,
 structure/union declarations, function agruments, and typedefs.
 
 The simiplest form of type expression is simply an identifier corresponiding to
-a declared type. This can be followed by '*' to indicate a pointer of that type,
+a declared type. This can be followed by '\*' to indicate a pointer of that type,
 or '[]' to indicate an array. Array brackets can contain an expression that can
 be evaluted at compile time to an integer, to indicate the array size.
 
