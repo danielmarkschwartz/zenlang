@@ -1,0 +1,13 @@
+struct struct0 {x,y,z float32}
+
+struct struct1 {
+    data uint8;
+    capacity,   //takes int type of following member
+    i,          //takes int type of following member 
+    len int;
+}
+
+typedef struct2 struct {
+    data uint8;
+    capacity, i, len int;
+}

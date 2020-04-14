@@ -1,0 +1,10 @@
+typedef mytype int32
+typedef mytype1 type1
+typedef mytype2 mod1->type2
+typedef mytype3 *int32
+typedef mytype4 []int32
+typedef mytype5 [1]uint16
+typedef mytype6 func (void) void
+typedef mytype7 func (int, float, []*uint64) int
+typedef mytype8 func (void) (*[]int, **float)
+typedef mytype9 func (void) []*void
