@@ -23,6 +23,21 @@ void ns_free(struct ns *ns) {
         case VAL_CONST: case VAL_VAR:
              type_free(&ns->val[i].expr_type);
              expr_free(&ns->val[i].expr);
+             break;
+        case VAL_FUNC:
+             free(ns->val[i].mod);
+             free(ns->val[i].type_ident);
+             for(int j = 0; j < ns->val[i].args_n; j++) {
+                 free(ns->val[i].args[j]);
+                 type_free(&ns->val[i].args_type[j]);
+             }
+             for(int j = 0; j < ns->val[i].ret_n; j++)
+                 type_free(&ns->val[i].ret_type[j]);
+             free(ns->val[i].args);
+             free(ns->val[i].args_type);
+             free(ns->val[i].ret_type);
+             expr_free(&ns->val[i].func_expr);
+             break;
         }
     }
     free(ns->key);

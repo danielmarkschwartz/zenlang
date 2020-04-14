@@ -78,6 +78,30 @@ int main(int argc, char **argv) {
                      type_print(&ns.val[i].expr_type);
                  }
                  printf("\n"); break;
+            case VAL_FUNC:
+                 printf("FUNC");
+                 if(ns.val[i].type_ident) printf(" member of %s", ns.val[i].type_ident);
+                 if(ns.val[i].mod) printf(" in module %s", ns.val[i].mod);
+                 printf("(");
+                 for(int j = 0; j < ns.val[i].args_n; j++) {
+                    if(j > 0) printf(", ");
+                    printf("%s", ns.val[i].args[j]);
+                    if(ns.val[i].args_type[j].type != TYPE_NONE){
+                        printf(" ");
+                        type_print(&ns.val[i].args_type[j]);
+                    }
+                 }
+                 printf(")");
+                 if(ns.val[i].ret_n) printf(" (");
+                 for(int j = 0; j < ns.val[i].ret_n; j++) {
+                    if(j > 0) printf(", ");
+                    type_print(&ns.val[i].ret_type[j]);
+                 }
+                 if(ns.val[i].ret_n) printf(") ");
+                 else printf(" ");
+                 expr_print(&ns.val[i].func_expr);
+                 printf("\n");
+                 break;
             default: assert(0);
             }
         }

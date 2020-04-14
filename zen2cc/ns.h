@@ -5,8 +5,9 @@
 
 enum val_type {
     VAL_MODULE,         //Reference to external module
-    VAL_CONST,          //Constant value, with potentially unspecified type
+    VAL_CONST,          //Constant value
     VAL_VAR,            //Global variable
+    VAL_FUNC,           //Function definition
 };
 
 struct val {
@@ -17,6 +18,12 @@ struct val {
         struct {
             struct expr expr;
             struct type expr_type;
+        };
+        struct {
+            char *mod, *type_ident, **args;
+            struct type *args_type, *ret_type;
+            int args_n, ret_n;
+            struct expr func_expr;
         };
     };
 };

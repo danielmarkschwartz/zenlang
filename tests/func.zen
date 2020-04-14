@@ -1,0 +1,8 @@
+func f0() void 0
+func f1(a uint32) void 1
+func f2(a uint32, b float) void 2
+func f3(a, b uint8) void 3
+func f4() (int, *void) 4
+func atype->f5() void 5
+func mymod->mytype->f6() void 6
+

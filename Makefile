@@ -1,7 +1,7 @@
 CFLAGS=-g
 
 test: zen2cc/zen2cc
-	./zen2cc/zen2cc -p tests/const.zen
+	./zen2cc/zen2cc -p tests/func.zen
 
 test_token: zen2cc/zen2cc
 	@for f in tests/*.token; do \

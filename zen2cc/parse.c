@@ -369,7 +369,7 @@ static char *parse_type_expr(struct parse *p) {
                     ret[ret_n++] = p->type;
                 }
             } else {
-                parse_type_expr(p);
+                MUST(parse_type_expr);
                 ret[ret_n++] = p->type;
             }
 
@@ -480,6 +480,117 @@ static char *parse_enum(struct parse *p) {
     return NULL;
 }
 
+static char *parse_func(struct parse *p) {
+    assert(p);
+
+    char *err = NULL;
+
+    char *args[BUF_MAX];
+    struct type args_type[BUF_MAX];
+    int args_n = 0;
+
+    struct type ret_type[BUF_MAX];
+    int ret_n = 0;
+
+    char *mod = NULL, *type_ident = NULL, *ident = NULL;
+    struct token t;
+    token_stream_mark(p->ts);
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_FUNC);
+
+    //Parse ident, type->ident, or mod->type->ident
+
+    EXPECT(TOKEN_IDENT);
+    ident = token_str(t);
+    assert(ident);
+
+    MAYBE(TOKEN_RARR){
+        type_ident = ident;
+        EXPECT(TOKEN_IDENT);
+        ident = token_str(t);
+        assert(ident);
+    }
+
+    MAYBE(TOKEN_RARR){
+        mod = type_ident;
+        type_ident = ident;
+        EXPECT(TOKEN_IDENT);
+        ident = token_str(t);
+        assert(ident);
+    }
+
+    //Parse arguments
+    EXPECT(TOKEN_LPAREN);
+    for(;;) {
+        MAYBE(TOKEN_RPAREN) break;
+
+        if(args_n > 0) EXPECT(TOKEN_COMMA);
+
+        assert(args_n < BUF_MAX);
+
+        EXPECT(TOKEN_IDENT);
+        args[args_n] = token_str(t);
+
+        if(parse_type_expr(p))
+            args_type[args_n++] = (struct type){TYPE_NONE};
+        else
+            args_type[args_n++] = p->type;
+
+    }
+
+    //Parse return value
+    MAYBE(TOKEN_LPAREN) {
+        for(;;) {
+            MAYBE(TOKEN_RPAREN) break;
+
+            if(ret_n > 0) EXPECT(TOKEN_COMMA);
+
+            assert(ret_n < BUF_MAX);
+
+            MUST(parse_type_expr);
+            ret_type[ret_n++] = p->type;
+        }
+    } else {
+        MUST(parse_type_expr);
+        ret_type[ret_n++] = p->type;
+    }
+
+    MUST(parse_expr);
+    struct expr expr = p->expr;
+
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
+    struct val val = {};
+
+    val.type = VAL_FUNC;
+    val.mod = mod;
+    val.type_ident = type_ident;
+    val.args_n = args_n;
+    val.ret_n = ret_n;
+    val.func_expr = expr;
+
+    if(args_n > 0) {
+        val.args = malloc(sizeof(*args) * args_n);
+        assert(val.args);
+        memcpy(val.args, args, sizeof(*args) * args_n);
+
+        val.args_type = malloc(sizeof(*args_type) * args_n);
+        assert(val.args_type);
+        memcpy(val.args_type, args_type, sizeof(*args_type) * args_n);
+    }
+    if(ret_n > 0) {
+        val.ret_type = malloc(sizeof(*ret_type) * ret_n);
+        assert(val.ret_type);
+        memcpy(val.ret_type, ret_type, sizeof(*ret_type) * ret_n);
+    }
+
+    ns_set(&p->globals, ident, val);
+
+    return NULL;
+}
+
 //Parse entire stream, calling error for every error encountered.
 //Returns number of errors
 int parse(struct parse *p) {
@@ -498,8 +609,10 @@ int parse(struct parse *p) {
         if(err) err = parse_enum(p);
         if(err) err = parse_const(p);
         if(err) err = parse_let(p);
+        if(err) err = parse_func(p);
 
-        //TODO: parse other top level constructs
+        //TODO: improve error handling, by saving and returning the error from
+        //the sub parser with the longest successful match.
 
         if(err){
             p->error(p->ts, token_stream_next(p->ts), err);
