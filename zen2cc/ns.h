@@ -1,18 +1,23 @@
 #pragma once
 
-enum val_type {
-    VAL_MODULE
-};
+#include "type.h"
+#include "expr.h"
 
-struct val_module {
-    char *path;
+enum val_type {
+    VAL_MODULE,         //Reference to external module
+    VAL_CONST,          //Constant value, with potentially unspecified type
+    VAL_VAR,            //Global variable
 };
 
 struct val {
     enum val_type type;
 
     union {
-        struct val_module mod;
+        char *mod_path;
+        struct {
+            struct expr expr;
+            struct type expr_type;
+        };
     };
 };
 

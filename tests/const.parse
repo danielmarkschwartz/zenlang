@@ -1,0 +1,6 @@
+
+Global namespace
+const0: CONST 1234
+const1: CONST 4321 as PRIMITIVE int16
+
+Global typespace

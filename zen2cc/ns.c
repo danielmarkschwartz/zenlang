@@ -19,8 +19,10 @@ void ns_free(struct ns *ns) {
     for(int i = 0; i < ns->n; i++) {
         free(ns->key[i]);
         switch(ns->val[i].type) {
-        case VAL_MODULE: free(ns->val[i].mod.path); break;
-        default: assert(0);
+        case VAL_MODULE: free(ns->val[i].mod_path); break;
+        case VAL_CONST: case VAL_VAR:
+             type_free(&ns->val[i].expr_type);
+             expr_free(&ns->val[i].expr);
         }
     }
     free(ns->key);

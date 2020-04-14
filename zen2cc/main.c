@@ -59,7 +59,14 @@ int main(int argc, char **argv) {
         for(int i = 0; i < ns.n; i++) {
             printf("%s: ", ns.key[i]);
             switch(ns.val[i].type){
-            case VAL_MODULE: printf("MODULE '%s'\n", ns.val[i].mod.path); break;
+            case VAL_MODULE: printf("MODULE '%s'\n", ns.val[i].mod_path); break;
+            case VAL_CONST:
+                 printf("CONST "); expr_print(&ns.val[i].expr);
+                 if(ns.val[i].expr_type.type != TYPE_NONE) {
+                     printf(" as ");
+                     type_print(&ns.val[i].expr_type);
+                 }
+                 printf("\n"); break;
             default: assert(0);
             }
         }

@@ -40,11 +40,15 @@ static char err_buf[ERRBUF_SIZE];
     if(t.type == ttype)\
 
 #define ERRF(str, ...) do{\
+    token_stream_rewind(p->ts);\
     snprintf(err_buf, ERRBUF_SIZE, str, __VA_ARGS__);\
     return err_buf;\
 }while(0)
 
 #define MUST(func) do{if((err = func(p))){token_stream_rewind(p->ts); return err;}}while(0)
+
+
+static char *parse_type_expr(struct parse *p);
 
 static char *parse_expr(struct parse *p) {
     assert(p);
@@ -87,12 +91,40 @@ static char *parse_include(struct parse *p) {
     EXPECT(TOKEN_NEWLINE);
     token_stream_unmark(p->ts);
 
-    ns_set(&p->globals, ident, (struct val){VAL_MODULE, .mod={path}});
+    ns_set(&p->globals, ident, (struct val){VAL_MODULE, .mod_path=path});
 
     return NULL;
 }
 
-static char *parse_type_expr(struct parse *p);
+static char *parse_const(struct parse *p) {
+    assert(p);
+
+    char *err = NULL;
+    struct token t;
+    token_stream_mark(p->ts);
+
+    bool ignore_nl = false;
+    EXPECT(TOKEN_CONST);
+    EXPECT(TOKEN_IDENT);
+
+    char *ident = token_str(t);
+    assert(ident);
+
+    struct type type = {TYPE_NONE};
+    if(!parse_type_expr(p)) type = p->type;
+
+    EXPECT(TOKEN_ASSIGN);
+
+    MUST(parse_expr);
+
+    EXPECT(TOKEN_NEWLINE);
+    token_stream_unmark(p->ts);
+
+    ns_set(&p->globals, ident,
+            (struct val){VAL_CONST, .expr=p->expr, .expr_type=type});
+
+    return NULL;
+}
 
 #define BUF_MAX 10
 
@@ -429,6 +461,7 @@ int parse(struct parse *p) {
         if(err) err = parse_typedef(p);
         if(err) err = parse_struct(p);
         if(err) err = parse_enum(p);
+        if(err) err = parse_const(p);
 
         //TODO: parse other top level constructs
 
