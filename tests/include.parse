@@ -1,0 +1,6 @@
+
+Global namespace
+library: MODULE 'my/path/library'
+myident: MODULE 'my/path/library'
+
+Global typespace

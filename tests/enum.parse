@@ -1,0 +1,41 @@
+
+Global namespace
+
+Global typespace
+enum0: ENUM {
+	MON
+	TUE
+	WED
+	THUR
+	FRI
+	SAT
+	SUN
+}
+enum1: ENUM {
+	MON = 1
+	TUE
+	WED
+	THUR
+	FRI
+	SAT
+	SUN = 0
+}
+enum2: ENUM {
+	MON
+	TUE
+	WED
+	THUR
+	FRI
+	SAT
+	SUN
+	TYPE: IDENT 'mytype1'
+}
+enum3: ENUM {
+	MON
+	TUE
+	WED
+	THUR
+	FRI
+	SAT
+	SUN
+}

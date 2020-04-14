@@ -1,0 +1,14 @@
+
+Global namespace
+
+Global typespace
+mytype: PRIMITIVE int32
+mytype1: IDENT 'type1'
+mytype2: IDENT 'mod1'->'type2'
+mytype3: PTR to PRIMITIVE int32
+mytype4: ARRAY of PRIMITIVE int32
+mytype5: ARRAY [1] of PRIMITIVE uint16
+mytype6: FUNC (PRIMITIVE void) PRIMITIVE void
+mytype7: FUNC (PRIMITIVE int, PRIMITIVE float, ARRAY of PTR to PRIMITIVE uint64) PRIMITIVE int
+mytype8: FUNC (PRIMITIVE void) (PTR to ARRAY of PRIMITIVE int, PTR to PTR to PRIMITIVE float)
+mytype9: FUNC (PRIMITIVE void) ARRAY of PTR to PRIMITIVE void

@@ -1,0 +1,21 @@
+
+Global namespace
+
+Global typespace
+struct0: STRUCT {
+	x PRIMITIVE float32
+	y PRIMITIVE float32
+	z PRIMITIVE float32
+}
+struct1: STRUCT {
+	data PRIMITIVE uint8
+	capacity PRIMITIVE int
+	i PRIMITIVE int
+	len PRIMITIVE int
+}
+struct2: STRUCT {
+	data PRIMITIVE uint8
+	capacity PRIMITIVE int
+	i PRIMITIVE int
+	len PRIMITIVE int
+}
