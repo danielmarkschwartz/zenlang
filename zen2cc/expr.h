@@ -15,3 +15,4 @@ struct expr {
 };
 
 void expr_free(struct expr *e);
+void expr_print(struct expr *e);

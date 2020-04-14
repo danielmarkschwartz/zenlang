@@ -107,7 +107,7 @@ loop:
             printf("ENUM {\n");
             for(int i = 0; i < t->opts_n; i++) {
                 if(t->vals[i].type == EXPR_NONE) printf("\t%s\n", t->opts[i]);
-                else printf("\t%s = %.*s\n", t->opts[i], t->vals[i].num.len, t->vals[i].num.str);
+                else printf("\t%s = ", t->opts[i]), expr_print(&t->vals[i]), printf("\n");
             }
             if(t->enum_type && t->enum_type->type != TYPE_NONE) {
                 printf("\tTYPE: ");
@@ -116,7 +116,7 @@ loop:
             }
             printf("}");
             break;
-        case TYPE_ERR: case TYPE_NONE:
+        case TYPE_ERR: case TYPE_NONE: break;
         default: assert(0);
     }
 }
