@@ -4,18 +4,12 @@ Zen Language Specification
 This is the formal specification of the Zen programming language --- a C like
 minimal systems programming language.
 
-Input Streams
--------------
-
-
-
 Tokens
 ------
 
 Input streams are initially converted to tokens as noted below. Before breaking
 in to tokens, the input stream is scrubbed of any characters between and
 including /\* \*/ and // \<newline>.
-
 
 ### Space
 
@@ -85,7 +79,7 @@ ignored during parsing.
 The exponent must begin with [eE] character (decimal) or [pP] character (hex) if
 present. Optionally either + or - may occur to determine the sign of the
 exponent. Finally, a string of either hex or decimal digits depending on the
-initial exponent character. 
+initial exponent character.
 
 ### String Literal Parsing
 
@@ -125,14 +119,12 @@ before string de-duplication.
 Syntax
 ------
 
-Now follows the 
-
 ### Top Level Structure
 
 Zen programs or modules are composed of one or more files, which are collections
 of top level definitions:
 
-- Const 
+- Const
 - Enum
 - Function
 - Include
@@ -145,8 +137,8 @@ order of files. Any top level element declared within a module or program is
 always visible at any other point in the module or program.
 
 Top level elements of a module or hidden from external users (aka private)
-unless explicity made visible with the `export` keyword immediatly after the top
-level keyword. 
+unless explicitly made visible with the `export` keyword immediately after the top
+level keyword.
 
 ### Include
 
@@ -267,7 +259,7 @@ struct point {x,y,z float32}
 struct buffer {
     data uint8;
     capacity,   //takes int type of following member
-    i,          //takes int type of following member 
+    i,          //takes int type of following member
     len int;
 };
 ```
@@ -299,20 +291,173 @@ func mymodule->type->method() void {}
 Function arguments are specified as a list of identifiers with optional types,
 similar to a struct definition, surrounded by parens. Next, the return value(s)
 are specified using a comma delimited list. At least one return value must be
-specified, but can be void. Lastly curly braces enclose a list of expressions
-that make up the body of the function.
+specified, but can be void. Lastly an single expression makes up the body of the
+function.
 
 ### Type Expressions
 
-Types are compile time entities that exist in a seperate namespace from other
-identifiers. They consist of predifined type privatives and compound types
+Types are compile time entities that exist in a separate namespace from other
+identifiers. They consist of predefined type primatives and compound types
 defined using typedef, struct, enum, or union.
 
 Type expressions are used to express the type of an object in casts,
 structure/union declarations, function agruments, and typedefs.
 
-The simiplest form of type expression is simply an identifier corresponiding to
+The simplest form of type expression is simply an identifier corresponding to
 a declared type. This can be followed by '\*' to indicate a pointer of that type,
 or '[]' to indicate an array. Array brackets can contain an expression that can
-be evaluted at compile time to an integer, to indicate the array size.
+be evaluated at compile time to an integer, to indicate the array size.
 
+### Value Expressions
+
+In Zen, everything outside of top level statements are part of an expression.
+Expressions always evaluate to a value.
+
+#### Basic Expressions
+
+- `{num}` --- un-typed number, can be coerced to any numeric type
+- `{string}` --- evaluates to an []uint8 array int UTF-8, no null termination
+- `{char}`  --- equivalent to `{num}` with equivalent Unicode code point
+- `{ident}` --- matching value in current context
+
+#### Precedence 1 Operators
+
+Operators on this level are evaluated left to right.
+
+- Postfix increment `{expr} ++` and decrement `{expr} --`
+- Function call `{expr} ()`
+- Array subscript `{expr} [ {expr}? ]`
+- Structure access `{expr} . {expr}`
+- Type info access `{type_expr} -> {expr}`
+- Compound literal `( {type_expr} ) { {list} }`
+- TODO: multi-valued structure access and array subscript expressions
+
+#### Precedence 2 Operators
+
+Operators on this level are evaluated right to left.
+
+- Prefix increment `++ {expr}` and decrement `-- {expr}`
+- Unary plus `+ {expr}` and minus `- {expr}`
+- Logical not `! {expr}`
+- Bitwise not `~ {expr}`
+- Typecast `( {type_expr} ) {expr}`
+- Deference `* {expr}`
+- Address of `& {expr}`
+
+#### Precedence 3 Operators --- Multiplication
+
+Operators on this level are evaluated left to right.
+
+- Multiplication `{expr} * {expr}`
+- Division `{expr} / `{expr}`
+- Modulus `{expr} % `{expr}`
+
+#### Precedence 4 Operators --- Addition
+
+Operators on this level are evaluated left to right.
+
+- Addition `{expr} + {expr}`
+- Subtraction `{expr} - {expr}`
+
+#### Precedence 5 Operators --- Bitshift
+
+Operators on this level are evaluated left to right.
+
+- Shift right `{expr} << {expr}`
+- Shift left `{expr} >> {expr}`
+
+#### Precedence 6 Operators --- Relational
+
+Operators on this level are evaluated left to right.
+
+- Less than `{expr} < {expr}`
+- Less than equal `{expr} <= {expr}`
+- Greater than `{expr} > {expr}`
+- Greater than equal `{expr} >= {expr}`
+- Equals `{expr} == {expr}`
+- Not equals `{expr} != {expr}`
+
+#### Precedence 7 Operators --- Bitwise
+
+Operators on this level are evaluated left to right.
+
+- Bitwise OR `{expr} | {expr}`
+- Bitwise AND `{expr} & {expr}`
+- Bitwise XOR `{expr} ^ {expr}`
+
+#### Precedence 8 Operators --- Logical
+
+Operators on this level are evaluated left to right.
+
+- OR `{expr} || {expr}`
+- AND `{expr} && {expr}`
+
+#### Precedence 8 Operators --- Assignment
+
+Operators on this level are evaluated right to left.
+
+- Assignment `{expr} = {expr}`
+- Define `{expr} := {expr}`
+- Assign sum `{expr} += {expr}`
+- Assign difference `{expr} -= {expr}`
+- Assign multiply `{expr} *= {expr}`
+- Assign divide `{expr} /= {expr}`
+- Assign modulus `{expr} %= {expr}`
+- Assign shift left `{expr} <<= {expr}`
+- Assign shift right `{expr} >>= {expr}`
+- Assign bitwise and `{expr} &= {expr}`
+- Assign bitwise or `{expr} |= {expr}`
+- Assign bitwise xor `{expr} ^= {expr}`
+
+#### Block Expressions
+
+Blocks in curly braces create a new scope.
+
+- `{ {expr} ; ... }`
+- `( {expr} ; ... )`
+
+#### If Expressions
+
+If expressions evaluate to the value of the branch taken. Dangling else clauses
+are associated with the nearest if.
+
+- `if ( {expr} ) {expr}`
+- `if ( {expr} ) {expr} else {expr}`
+
+Switch statements valuate each case expr in order. If switch is given an
+argument, then the case is evaluated if the switch argument equals the case
+expression. Otherwise, the case is evaluated if the case expr is true.
+
+All other cases are skipped, unless the fallthrough expression is evaluated.
+
+- `switch ( {expr} ) { case {expr} : {expr} ...  default? :? {expr}? }`
+- `switch { case {expr} : {expr} ...  default? :? {expr}? }`
+
+#### Looping Expressions
+
+Typical initial, conditional, after each loop type for loop.
+
+- `for ( {expr}; {expr}; {expr} ) {expr}`
+
+For each element of array, making ident a reference to that array element. If
+two idents are provided, the second is the array index.
+
+- `for ( {ident} := {expr} ) {expr}`
+- `for ( {ident}, {ident} := {expr} ) {expr}`
+- `while ( {expr} ) {expr}`
+- `do {expr} while ( {expr} )`
+
+#### Misc Expressions
+
+Break can repeat, indicating breaking each outer loop in turn, optionally ending
+in continue. Break, continue, and fallthrough can precede an expression, which
+is is evaluated and becomes the value of the expression. If no expr is provided,
+then the value of the expression is void, which cannot be assigned or returned.
+
+- `break ... continue? {expr}?`
+- `continue {expr}?`
+- `fallthrough {expr}?`
+
+Return ends function evaluation, returning expression.
+
+- `return {expr}`

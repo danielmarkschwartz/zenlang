@@ -177,7 +177,7 @@ pointer, but loose array size information at the point of conversion.
 
 Type definitions of equivalent base type do not automatically convert, and must
 be explicitly converted. Conversion between non-compatible base types is not
-allowed.For instance:
+allowed. For instance:
 
 ```
 typedef time_utc int;
@@ -233,16 +233,19 @@ x = (if(true) 1; else 0;);
 
 Functions automatically return the value of it's final expression. Empty
 expressions evaluate as `void`, so ending a void function with `;;` will suppress
-warnings. The `return` keyword mains it's previous functionality, and can be
+warnings. The `return` keyword maintains it's previous functionality, and can be
 used as a final expression if desired.
 
-`break` and `continue` can optionally precede an expression, and they take the
-value of that expression. Otherwise, they evaluate as void.
+`break`, `continue`, and `fallthrough` can optionally precede an expression, and
+they take the value of that expression. Otherwise, they evaluate as void.
 
-`fallthough` is void, but should never be the last expression of a switch.
+Flow control expressions can short circuit expression evaluation:
 
-Evaluating `goto` or `return` in an expression that is on the right hand side of
-an assignment operator causes the assignment to never evaluate.
+```
+f(if(false) return 0);
+```
+
+So, in this case f() will never be called.
 
 ### Dots and Arrows
 
@@ -269,9 +272,9 @@ New Functionality
 
 ### Replacing Goto
 
-Much maligned `goto` has legitimate use in C in several situations, most
+Much maligned `goto` has legitimate use in C in several situations. Most
 importantly error handling clean up and occasionally exiting nested loops where
-`break` would not suffice.
+`break` would not suffice, and error handling clean up code.
 
 Zenlang removes `goto` in order to keep elements of the expression syntax
 (particularly avoiding a jump out of the right hand side of an assignment)
@@ -310,7 +313,7 @@ the results of any of these operators applies to it every element of that list.
 `[,]` and `[:]` allow one to access elements of an array. `:` inside an array
 index indicates a range of elements from the left element to the right
 inclusive. The left hand side may be bigger than the right, indicating a reverse
-listing. `,` is used to separate a list of element id's to access. These
+ordering. `,` is used to separate a list of element id's to access. These
 elements may also be ranges.
 
 ### Lambda Functions
