@@ -17,7 +17,9 @@ Any sequence of " ", \t, \n, or \r.
 
 ### Punctuation Characters
 
-`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`
+```
+! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
+```
 
 ### Delimiters
 
@@ -43,8 +45,8 @@ punctuation character: --, ++, ->, !~, !=, \<\<, \>\>, <=, >=, ==, &&, ||, +=,
 ### Numeric literal
 
 A sequence of [0-9a-fA-F-._xXoObBpP], that must start with a digit 0-9 and is
-delimited. (Note: negative numbers are interepreted as a sequence of tokens '-'
-'<numeric literal'). This definition may accept non-conforming numberic
+delimited. (Note: negative numbers are interpreted as a sequence of tokens '-'
+'<numeric literal>'). This definition may accept non-conforming numeric
 expressions, which must be treated as an error. See literal parsing for details
 on accepted number formats
 
@@ -143,9 +145,9 @@ level keyword.
 ### Include
 
 The `include` keyword pulls in an external module, specified by the path string
-immediatly following, in to the global namespace. By default modules occupy the
+immediately following, in to the global namespace. By default modules occupy the
 the same identifier as their final path, although this can be overridden by
-specifiying an identifier after the path.
+specifying an identifier after the path.
 
 ```
 include "example/mymodule";
@@ -155,7 +157,7 @@ include "example/mymodule" mm;
 //Access using mm->myfunc()
 ```
 
-Exporing an include makes the module accessible by third parties:
+Exporting an include makes the module accessible by third parties:
 
 ```
 include export "module";
@@ -207,9 +209,9 @@ Typedef is the simplest, and simply takes an identifier and a type expression.
 typedef mytype typeexpr... ;
 ```
 
-Typdefs are useful for creating new symantic meanings using an existing base
+Typdefs are useful for creating new semantic meanings using an existing base
 type. For instance, the two types created below have the same base type, but
-must be explictly cast to assign a variable of one type to the other.
+must be explicitly cast to assign a variable of one type to the other.
 
 ```
 typedef utc_time int32;
@@ -217,14 +219,14 @@ typedef local_time int32;
 ```
 
 Enums are use to declare constants which are automatically namespaced and have
-their own runtime representation.
+their own run time representation.
 
 ```
 enum weekday {MON, TUE, WED, THUR, FRI, SAT, SUN};
 // Access as weekday->MON, etc
 ```
 
-Enums consist of comma seperated list of identifiers, optionally with assignment
+Enums consist of comma separated list of identifiers, optionally with assignment
 expressions that evaluate in compile time to integer constants. If the first
 value has no expression, it is assigned to 0. Members without expressions
 are automatically defined as the previous value plus one. So, MON == 0, TUE ==
@@ -239,11 +241,11 @@ reevaluated for each element:
 enum bytesize { B = 1 << (10*itoa), KB, MB, GB, TB, PB };
 ```
 
-The compiler is free to choose an approprate integer type (eg `uint32`,
-`uint16`, etc) for runtime storage of an enum based on the range of specified
-values. The the size can be queried at compile time using `weekday->size`.
+The compiler is free to choose an appropriate integer type (eg `uint32`,
+`uint16`, etc) for run time storage of an enum based on the range of specified
+values. The size can be queried at compile time using `weekday->size`.
 Optionally, the user can specify the type of the enum at the end of the
-declairation, but the type specified must be corherceable to an integer type.
+declaration, but the type specified must be coercible to an integer type.
 
 ```
 typedef dayofweek uint8;
@@ -251,7 +253,7 @@ enum weekday {MON, TUE, WED, THUR, FRI, SAT, SUN dayofweek};
 ```
 
 Structs are used declare compound types. They take the form of a semicolon
-seperated list of identefiers one or more identifiers, seperated by commas,
+separated list of identifiers one or more identifiers, eparated by commas,
 followed by a type expression. The final semicolon in a struct is optional.
 
 ```
@@ -301,7 +303,7 @@ identifiers. They consist of predefined type primatives and compound types
 defined using typedef, struct, enum, or union.
 
 Type expressions are used to express the type of an object in casts,
-structure/union declarations, function agruments, and typedefs.
+structure/union declarations, function arguments, and typedefs.
 
 The simplest form of type expression is simply an identifier corresponding to
 a declared type. This can be followed by '\*' to indicate a pointer of that type,
@@ -320,6 +322,11 @@ Expressions always evaluate to a value.
 - `{char}`  --- equivalent to `{num}` with equivalent Unicode code point
 - `{ident}` --- matching value in current context
 
+Blocks in curly braces create a new scope.
+
+- `{ {expr} ; ... }`
+- `( {expr} ; ... )`
+
 #### Precedence 1 Operators
 
 Operators on this level are evaluated left to right.
@@ -329,7 +336,7 @@ Operators on this level are evaluated left to right.
 - Array subscript `{expr} [ {expr}? ]`
 - Structure access `{expr} . {expr}`
 - Type info access `{type_expr} -> {expr}`
-- Compound literal `( {type_expr} ) { {list} }`
+- Compound literal `{type_expr} { {list} }`
 - TODO: multi-valued structure access and array subscript expressions
 
 #### Precedence 2 Operators
@@ -349,8 +356,8 @@ Operators on this level are evaluated right to left.
 Operators on this level are evaluated left to right.
 
 - Multiplication `{expr} * {expr}`
-- Division `{expr} / `{expr}`
-- Modulus `{expr} % `{expr}`
+- Division `{expr} / {expr}`
+- Modulus `{expr} % {expr}`
 
 #### Precedence 4 Operators --- Addition
 
@@ -408,13 +415,6 @@ Operators on this level are evaluated right to left.
 - Assign bitwise and `{expr} &= {expr}`
 - Assign bitwise or `{expr} |= {expr}`
 - Assign bitwise xor `{expr} ^= {expr}`
-
-#### Block Expressions
-
-Blocks in curly braces create a new scope.
-
-- `{ {expr} ; ... }`
-- `( {expr} ; ... )`
 
 #### If Expressions
 
