@@ -12,13 +12,13 @@ enum0: ENUM {
 	SUN
 }
 enum1: ENUM {
-	MON = 1
+	MON = NUM 1
 	TUE
 	WED
 	THUR
 	FRI
 	SAT
-	SUN = 0
+	SUN = NUM 0
 }
 enum2: ENUM {
 	MON

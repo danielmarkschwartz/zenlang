@@ -1,6 +1,6 @@
 #pragma once
 
-#include "expr.h"
+struct expr;
 
 enum type_type {
     TYPE_NONE = -2,

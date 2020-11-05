@@ -5,6 +5,12 @@
 
 #include "parse.h"
 
+/*
+#define token_stream_mark(ts) do{for(int i=0;i<ts->mark_n;i++)printf("\t");printf("mark %s\n", __func__); token_stream_mark(ts);}while(0)
+#define token_stream_unmark(ts) do{for(int i=0;i<ts->mark_n;i++)printf("\t");printf("unmark %s\n", __func__); token_stream_unmark(ts);}while(0)
+#define token_stream_rewind(ts) do{for(int i=0;i<ts->mark_n;i++)printf("\t");printf("rewind %s\n", __func__); token_stream_rewind(ts);}while(0)
+*/
+
 void parse_init(struct parse *p, struct token_stream *ts, error_func err) {
     assert(p); assert(ts);
 
@@ -48,22 +54,181 @@ static char err_buf[ERRBUF_SIZE];
 #define MUST(func) do{if((err = func(p))){token_stream_rewind(p->ts); return err;}}while(0)
 
 
-static char *parse_type_expr(struct parse *p);
+#define BUF_MAX 10
 
-static char *parse_expr(struct parse *p) {
+static char *parse_type_expr(struct parse *p);
+static char *parse_expr(struct parse *p);
+
+static char *parse_ident(struct parse *p) {
     assert(p);
     token_stream_mark(p->ts);
 
     struct token t;
+    char *err = NULL;
+    bool ignore_nl = true;
+    EXPECT(TOKEN_IDENT);
+    p->expr.type = EXPR_IDENT;
+    p->expr.lit = t;
+
+    token_stream_unmark(p->ts);
+    return NULL;
+}
+
+static char *parse_expr_basic(struct parse *p) {
+    assert(p);
+    token_stream_mark(p->ts);
+
+    char *err = NULL;
+    bool ignore_nl = true;
+
+    struct token t;
     while(t = token_stream_next(p->ts), t.type == TOKEN_NEWLINE);
     switch(t.type) {
-    case TOKEN_NUM: p->expr.type = EXPR_NUM; p->expr.num = t; return NULL;
-    //TODO: implement expression parsing
-    default: assert(0); //NOT IMPLEMENTED
+    case TOKEN_NUM: p->expr.type = EXPR_NUM; p->expr.lit = t; break;
+    case TOKEN_STR: //fallthrough
+    case TOKEN_STR_ESC: p->expr.type = EXPR_STR; p->expr.lit = t; break;
+    case TOKEN_IDENT: p->expr.type = EXPR_IDENT; p->expr.lit = t; break;
+    case TOKEN_LPAREN: MUST(parse_expr); EXPECT(TOKEN_RPAREN); break;
+    default: token_stream_rewind(p->ts); return "Not a basic expression";
     }
 
     token_stream_unmark(p->ts);
     return NULL;
+}
+
+static char *parse_expr_1(struct parse *p) {
+    assert(p);
+
+    struct token t;
+    bool ignore_nl = true;
+
+    token_stream_mark(p->ts);
+
+    int level = 0;
+    char *err = parse_expr_basic(p);
+    while(!err) {
+        level ++;
+        struct expr l = p->expr;
+
+        while(t = token_stream_next(p->ts), t.type == TOKEN_NEWLINE);
+        switch(t.type) {
+            case TOKEN_INC:
+                p->expr.type = EXPR_POSTINC;
+                p->expr.l = expr_alloc(l);
+                p->expr.r = NULL;
+                break;
+
+            case TOKEN_DEC:
+                p->expr.type = EXPR_POSTDEC;
+                p->expr.l = expr_alloc(l);
+                p->expr.r = NULL;
+                break;
+
+            case TOKEN_DOT:
+                MUST(parse_ident);
+                p->expr.r = expr_alloc(p->expr);
+
+                p->expr.type = EXPR_SACC;
+                p->expr.l = expr_alloc(l);
+                break;
+
+            case TOKEN_LPAREN: {
+                struct expr buf[BUF_MAX];
+                int i;
+                for(i = 0; 1; i++) {
+                   MAYBE(TOKEN_RPAREN) break;
+                   if(i>0) EXPECT(TOKEN_COMMA);
+
+                   assert(i < BUF_MAX);
+
+                   MUST(parse_expr);
+                   buf[i] = p->expr;
+                }
+
+                if(i) {
+                   p->expr.args = malloc(sizeof(struct expr) * i);
+                   assert(p->expr.args);
+                   memcpy(p->expr.args, buf, sizeof(struct expr) * i);
+                } else {
+                   p->expr.args = NULL;
+                }
+
+                p->expr.f = expr_alloc(l);
+                p->expr.args_n = i;
+                p->expr.type = EXPR_FCALL;
+
+                break;
+            }
+
+            default:
+               if(level > 1) {
+                   token_stream_rewind(p->ts);
+                   return NULL;
+               } else goto parse_type_expr;
+        }
+
+        token_stream_unmark(p->ts);
+        token_stream_mark(p->ts);
+
+    }
+
+parse_type_expr:
+    token_stream_rewind(p->ts);
+    token_stream_mark(p->ts);
+    if(parse_type_expr(p)) return parse_expr_basic(p);
+
+    //Handle type related expressions
+    struct type type = p->type;
+    while(t = token_stream_next(p->ts), t.type == TOKEN_NEWLINE);
+    switch(t.type) {
+        case TOKEN_RARR:        // type->ident | type accessors
+            MUST(parse_ident);
+            p->expr.tacc.m = expr_alloc(p->expr);
+            p->expr.tacc.t = type;
+            p->expr.type = EXPR_TACC;
+            break;
+
+        case TOKEN_LCURL: {     // type{...}   | initializers
+            struct expr buf[BUF_MAX];
+            int i;
+            for(i = 0; 1; i++) {
+               MAYBE(TOKEN_RCURL) break;
+               if(i>0) EXPECT(TOKEN_COMMA);
+
+               assert(i < BUF_MAX);
+
+               //TODO: parse compound literal element
+               MUST(parse_expr);
+               buf[i] = p->expr;
+            }
+
+            if(i) {
+               p->expr.vals = malloc(sizeof(struct expr) * i);
+               assert(p->expr.vals);
+               memcpy(p->expr.vals, buf, sizeof(struct expr) * i);
+            } else {
+               p->expr.vals = NULL;
+            }
+
+            p->expr.vals_n = i;
+            p->expr.t = type;
+            p->expr.type = EXPR_COMP_LIT;
+
+            break;
+        }
+
+        default:  token_stream_rewind(p->ts);
+                  return parse_expr_basic(p);
+    }
+
+    token_stream_unmark(p->ts);
+
+    return NULL;
+}
+
+static char *parse_expr(struct parse *p) {
+    assert(p);
+    return parse_expr_1(p);
 }
 
 static char *parse_include(struct parse *p) {
@@ -160,8 +325,6 @@ ret:
 
     return NULL;
 }
-
-#define BUF_MAX 10
 
 //Parse struct definition in curly braces '{...}'
 //Fills p->type with parsed members and TYPE_STRUCT
@@ -608,8 +771,8 @@ int parse(struct parse *p) {
         if(err) err = parse_struct(p);
         if(err) err = parse_enum(p);
         if(err) err = parse_const(p);
-        if(err) err = parse_let(p);
         if(err) err = parse_func(p);
+        if(err) err = parse_let(p);
 
         //TODO: improve error handling, by saving and returning the error from
         //the sub parser with the longest successful match.

@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "type.h"
+#include "expr.h"
 
 char *type_primative_str[TYPE_NUM] = {
     "void",

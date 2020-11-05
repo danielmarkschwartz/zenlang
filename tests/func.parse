@@ -1,11 +1,11 @@
 
 Global namespace
-f0: FUNC() (PRIMITIVE void) 0
-f1: FUNC(a PRIMITIVE uint32) (PRIMITIVE void) 1
-f2: FUNC(a PRIMITIVE uint32, b PRIMITIVE float) (PRIMITIVE void) 2
-f3: FUNC(a, b PRIMITIVE uint8) (PRIMITIVE void) 3
-f4: FUNC() (PRIMITIVE int, PTR to PRIMITIVE void) 4
-f5: FUNC member of atype() (PRIMITIVE void) 5
-f6: FUNC member of mytype in module mymod() (PRIMITIVE void) 6
+f0: FUNC() (PRIMITIVE void) NUM 0
+f1: FUNC(a PRIMITIVE uint32) (PRIMITIVE void) NUM 1
+f2: FUNC(a PRIMITIVE uint32, b PRIMITIVE float) (PRIMITIVE void) NUM 2
+f3: FUNC(a, b PRIMITIVE uint8) (PRIMITIVE void) NUM 3
+f4: FUNC() (PRIMITIVE int, PTR to PRIMITIVE void) NUM 4
+f5: FUNC member of atype() (PRIMITIVE void) NUM 5
+f6: FUNC member of mytype in module mymod() (PRIMITIVE void) NUM 6
 
 Global typespace

@@ -1,7 +1,7 @@
 
 Global namespace
 var0: VAR as PRIMITIVE uint32
-var1: VAR 1234
-var2: VAR 12.34 as PRIMITIVE uint16
+var1: VAR NUM 1234
+var2: VAR NUM 12.34 as PRIMITIVE uint16
 
 Global typespace
