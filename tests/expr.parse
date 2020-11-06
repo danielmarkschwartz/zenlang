@@ -1,0 +1,24 @@
+./zen2cc/zen2cc -p tests/expr.zen
+
+Global namespace
+e00: VAR NUM 1234
+e01: VAR STR string
+e02: VAR STR string2
+e03: VAR IDENT e0
+e04: VAR (PRIMITIVE uint8){NUM 1, NUM 2}
+e05: VAR (STRUCT {
+	a PRIMITIVE uint8
+	b PRIMITIVE uint8
+}){NUM 1, NUM 2}
+e10: VAR IDENT a ++
+e11: VAR IDENT b --
+e12: VAR IDENT s SACC IDENT a
+e13: VAR PRIMITIVE uint8 TACC IDENT t
+e14: VAR IDENT a ++ --
+e15: VAR IDENT a SACC IDENT b ++ ++ ++
+e16: VAR IDENT f()
+e17: VAR IDENT f(IDENT a)
+e18: VAR IDENT f(IDENT a, IDENT b)
+e19: VAR IDENT f(IDENT a, IDENT b ++)
+
+Global typespace

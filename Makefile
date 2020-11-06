@@ -35,6 +35,12 @@ test_parse: zen2cc/zen2cc
 		fi; \
 	done
 
+test_parse_update:
+	@for f in tests/*.zen; do \
+		printf "Updating $${f##*/} ... \n"; \
+		./zen2cc/zen2cc -p "$$f" > "$${f%.*}.parse"; \
+	done
+
 zen2cc/zen2cc: zen2cc/*.c zen2cc/*.h
 	$(CC) $(CFLAGS) -o zen2cc/zen2cc zen2cc/*.c
 

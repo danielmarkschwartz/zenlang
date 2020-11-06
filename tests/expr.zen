@@ -2,18 +2,18 @@ let e00 = 1234
 let e01 = "string"
 let e02 = 'string2'
 let e03 = e0
+let e04 = uint8{1,2}
+let e05 = struct{a,b uint8}{1,2} //TODO: correct syntax to {{1,2},{3,4}}
 
-let e04 = a++
-let e05 = b--
-let e06 = s.a
-let e07 = uint8->t
-let e08 = a++ --
-let e09 = a.b ++++++
+let e10 = a++
+let e11 = b--
+let e12 = s.a
+let e13 = uint8->t
+let e14 = a++ --
+let e15 = a.b ++++++
 
-let e10 = f()
-let e11 = f(a)
-let e12 = f(a,b)
-let e13 = f(a,b++)
+let e16 = f()
+let e17 = f(a)
+let e18 = f(a,b)
+let e19 = f(a,b++)
 
-let e20 = uint8{1,2}
-let e21 = struct{a,b uint8}{1,2} //TODO: correct syntax to {{1,2},{3,4}}
