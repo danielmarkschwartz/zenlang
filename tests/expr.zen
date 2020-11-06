@@ -17,3 +17,10 @@ let e17 = f(a)
 let e18 = f(a,b)
 let e19 = f(a,b++)
 
+let e20 = ++ a
+let e21 = -- b
+let e22 = !1
+let e23 = ~0xF0
+let e24 = (int)5
+let e25 = *(*char)0xABCD
+let e26 = &a

@@ -16,6 +16,14 @@ enum expr_type {
     EXPR_SACC,                  //Structure access .
     EXPR_TACC,                  //Type info access ->
     EXPR_COMP_LIT,              //Compound literal
+
+    EXPR_PREINC,                //Prefix increment ++
+    EXPR_PREDEC,                //Prefix increment --
+    EXPR_LNOT,                  //Logical not !
+    EXPR_BNOT,                  //Bit wise not ~
+    EXPR_CAST,                  //Type cast (<type>)<expr>
+    EXPR_DEFER,                 //Pointer deference *<expr>
+    EXPR_ADDR,                  //Address of &<expr>
 };
 
 struct expr {

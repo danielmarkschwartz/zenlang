@@ -226,9 +226,85 @@ parse_type_expr:
     return NULL;
 }
 
+static char *parse_expr_2(struct parse *p) {
+    assert(p);
+
+    struct token t;
+    bool ignore_nl = true;
+
+    char *err = NULL;
+    token_stream_mark(p->ts);
+    while(t = token_stream_next(p->ts), t.type == TOKEN_NEWLINE);
+    switch(t.type) {
+        case TOKEN_INC:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_PREINC;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_DEC:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_PREDEC;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_NOT:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_LNOT;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_BNOT:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_BNOT;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_MUL:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_DEFER;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_BAND:
+            MUST(parse_expr_2);
+            p->expr.l = expr_alloc(p->expr);
+            p->expr.type = EXPR_ADDR;
+            p->expr.r = NULL;
+            token_stream_unmark(p->ts);
+            return NULL;
+
+        case TOKEN_LPAREN:
+            err = parse_type_expr(p);
+            if(err) return parse_expr_basic(p);
+            struct type type = p->type;
+            EXPECT(TOKEN_RPAREN);
+            MUST(parse_expr_2);
+            p->expr.tacc.m = expr_alloc(p->expr);
+            p->expr.tacc.t = type;
+            p->expr.type = EXPR_CAST;
+            return NULL;
+
+        default: break;
+    }
+
+    token_stream_rewind(p->ts);
+    return parse_expr_1(p);
+}
+
 static char *parse_expr(struct parse *p) {
     assert(p);
-    return parse_expr_1(p);
+    return parse_expr_2(p);
 }
 
 static char *parse_include(struct parse *p) {

@@ -30,6 +30,13 @@ void expr_free(struct expr *e) {
                      free(e->vals);
                      break;
 
+    case EXPR_PREINC: expr_free(e->l); break;
+    case EXPR_PREDEC: expr_free(e->l); break;
+    case EXPR_LNOT:   expr_free(e->l); break;
+    case EXPR_BNOT:   expr_free(e->l); break;
+    case EXPR_CAST:   type_free(&e->t); expr_free(e->tacc.m); break;
+    case EXPR_DEFER:   expr_free(e->l); break;
+    case EXPR_ADDR:   expr_free(e->l); break;
     }
 }
 
@@ -66,6 +73,13 @@ void expr_print(struct expr *e) {
         }
         printf("}");
         return;
+    case EXPR_PREINC:  printf("++ "); expr_print(e->l); return;
+    case EXPR_PREDEC:  printf("-- "); expr_print(e->l); return;
+    case EXPR_LNOT:  printf("! "); expr_print(e->l); return;
+    case EXPR_BNOT:  printf("~ "); expr_print(e->l); return;
+    case EXPR_CAST:  printf("("); type_print(&e->t); printf(") "); expr_print(e->tacc.m); return;
+    case EXPR_DEFER:  printf("* "); expr_print(e->l); return;
+    case EXPR_ADDR:  printf("& "); expr_print(e->l); return;
     default:
         printf("Reached DEFAULT %i\n", e->type);
     }
